@@ -13,6 +13,7 @@ library(CBPS)
 library(ggplot2)
 
 read_xlsx("/home/lucas/Documents/Doutorado/tese/cap1/forest-develop/dbcap1_clean.xlsx")-> dbcap1_PS
+read_xlsx("")
 
 ##Standardize continuous covariates####
 as.data.frame(scale(dbcap1_PS [,18:36]))-> dbcap1_PS [,18:36]
