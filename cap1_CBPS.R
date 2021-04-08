@@ -8,69 +8,53 @@ setwd("/home/lucas/Documents/Doutorado/tese/cap1/")
 #Libraries
 library(readxl)
 library(dplyr)
-library(tidyr)
+library(GGally)
 library(CBPS)
+library(sf)
+library(spdep)
+library(spatialreg)
 library(ggplot2)
 
-read_xlsx("/home/lucas/Documents/Doutorado/tese/cap1/forest-develop/dbcap1_clean.xlsx")-> dbcap1_PS
-read_xlsx("")
 
-##Standardize continuous covariates####
-as.data.frame(scale(dbcap1_PS [,18:36]))-> dbcap1_PS [,18:36]
-#Define covariate names####
-paste0(names(dbcap1_PS [,18:36]),"_scaled")-> covariateNames
-names(dbcap1_PS)[18:36] <- covariateNames
-glimpse(dbcap1_PS)
-na.omit(dbcap1_PS)-> dbcap1_PS
-## treatment normalization####
-#Find the Box-Cox transformation of the treatment
-# that makes its distribution closest to normal
-#max.norm.cor<-cor(qqnorm(dbcap1_PS$nvcPerc_10)$x,qqnorm(dbcap1_PS$nvcPerc_10)$y)
-#best.bc<-dbcap1_PS$nvcPerc_10
-#best.lambda<-1
-#for (lambda in seq(-2,2,0.01)){
-#  if (lambda != 0)
-#  {
-#    bc.nvcPerc_10<-((dbcap1_PS$nvcPerc_10+1)^lambda - 1)/lambda
-#  }
-#  else
-#  {
-#    bc.nvcPerc_10<-log(dbcap1_PS$nvcPerc_10+1)
-#  }
-#  norm.cor<-cor(qqnorm(bc.nvcPerc_10)$x,qqnorm(bc.nvcPerc_10)$y)
-#  if (norm.cor > max.norm.cor)
-#  {
-#    max.norm.cor<-norm.cor
-#    best.bc<-bc.nvcPerc_10
-#    best.lambda<-lambda
-#  }
-#}
+read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/db2cap1_cbps_clean.xlsx")-> data
 
-#dbcap1_PS$nvcPerc_10_norm<-best.bc
-
-
+#data exploration
+glimpse(data)
+data$code_state<- as.factor(data$code_state)
+hist(data$nvcPerc_2010)
 
 #data exploration####
-#hist(dbcap1_PS$nvcPerc_10)
-#hist(dbcap1_PS$nvcPerc_10_norm)
-#GGally:::ggpairs(dbcap1_PS [,18:36])
+hist(data$nvcPerc_2010)
+hist(data$nvcPerc_2010_norm)#parece menos normal que sem ser transformado...
+glimpse(data)
+ggpairs(data[,12:29])
+as.data.frame(scale(data[,12:29]))-> data[,12:29]
 
 #data analysis####
 ##Propensity scores for 2010 model
 ### Create CBPS ####
-modelnvc<- CBPS(data = dbcap1_PS,
-              nvcPerc_10 ~      
-                txDesemp_10_scaled +  
-                finanPerc_17_scaled +
-                bovMed_17_scaled +
-                capMed_17_scaled +
-                beanMed_17_scaled +
-                cornMed_17_scaled +
-                popDens_10_scaled +
-                MeanSlopefor2004analysis_scaled +                   
-                MeanElevationfor2004analysis_scaled +              
-                Sumkm2_ProtectedArea2013_scaled,
+modelnvc<- CBPS(data = data[-c(38,616),], #remove varibales with correlation higher than 0.4 in both directions
+              nvcPerc_2010 ~      
+              area_mun +
+              p_agro_10 +
+              #perc_rur_10 +
+              perc_urb_10+
+              prodAss_06+
+              nascProt_06+
+              riosProt_06+
+              irrigPerc_06+
+              rain_var+
+              percProp_S+
+              #percProp_M+
+              #percProp_L+
+              pibAgroPC_2010+
+              pibIndPC_2010+
+              pibServpubPC_2010+
+              carvVeg_10+
+              lenha_10,
+              #wood_10,
               method = "exact",
+              ATT=0
               )
 summary(modelnvc)
 
@@ -82,202 +66,138 @@ names(bal.covar)<- c("Pearson r unweighted", "Pearson r IPW")
 summary(bal.covar)
 boxplot(bal.covar)
 
-### Create npCBPS 
-modelNPnvc<- npCBPS(data = dbcap1_PS,
-                nvcPerc_10 ~      
-                  txDesemp_10_scaled +  
-                  finanPerc_17_scaled +
-                  bovMed_17_scaled +
-                  capMed_17_scaled +
-                  beanMed_17_scaled +
-                  cornMed_17_scaled +
-                  popDens_10_scaled +
-                  MeanSlopefor2004analysis_scaled +                   
-                  MeanElevationfor2004analysis_scaled +              
-                  Sumkm2_ProtectedArea2013_scaled,
-                method = "exact",
-                standardize = T,
-                ATT = 0)
-summary(modelNPnvc)
+### check spatial correlation in CBPS stage ####
+read_sf("/home/lucas/Documentos/Doutorado/Dados/muncat_2020.shp")->mun_cat
+data$code_muni<-as.character(data$code_muni)
+inner_join(mun_cat, data, by = c("CD_MUN" = "code_muni"))-> mun_cat_data
+poly2nb(mun_cat_data[-c(38,616),], queen=TRUE)-> mat_dist2
+nb2listw(mat_dist2)->mat_dist_list
 
-### Evaluate npCBPS
-balNP.covar<- balance(modelNPnvc)
-balNP.covar<- data.frame(original=balNP.covar$unweighted, 
-                       weighted=balNP.covar$balanced)
-names(balNP.covar)<- c("Pearson r baseline", "npCBPS")
-summary(balNP.covar)
-
-cbind(bal.covar, balNP.covar$npCBPS)->bal.check
-names(bal.check)<- c("Unweighted", "CBPS", "npCBPS")
-boxplot(bal.check, ylab= "Pearson correlations")
+#não consegui encontrar uma forma de testar o resíduos do CBPS
 
 ###Average Treatment Effect####
 ####Fong et al, 2018 method
-model.expov10<- glm(data = dbcap1_PS, 
+model.expov10<- glm(data = data[-c(38,616),], 
                     expov_2010 ~
-                      nvcPerc_10 +
-                      I(nvcPerc_10^2),
+                      nvcPerc_2010 +
+                      I(nvcPerc_2010^2),
                     weights = modelnvc$weights
                     )
 summary(model.expov10)
+lm.morantest(model.expov10, mat_dist_list, alternative = "two.sided")
 
+moran.test(mun_cat_data[-c(38,616),]$expov_2010, mat_dist_list, alternative = "two.sided") # tentativa de identificar qual variável carrega a dependencia espacial
+moran.test(mun_cat_data[-c(38,616),]$gini_2010, mat_dist_list, alternative = "two.sided")
+moran.test(mun_cat_data[-c(38,616),]$IDHM_E_2010, mat_dist_list, alternative = "two.sided")
+moran.test(mun_cat_data[-c(38,616),]$nvcPerc_2010, mat_dist_list, alternative = "two.sided")
+
+errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
+         expov_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2),
+         weights = modelnvc$weights,
+         listw =mat_dist_list
+        )->m.expov_spat
+summary(m.expov_spat)
 
 #outcome IDHM_R
-model.idhmR_2010<- glm(data = dbcap1_PS, 
+model.idhmR_2010<- glm(data = data[-c(38,616),], 
                     IDHM_R_2010 ~
-                      nvcPerc_10 +
-                      I(nvcPerc_10^2),
+                      nvcPerc_2010 +
+                      I(nvcPerc_2010^2),
                     weights = modelnvc$weights
 )
 summary(model.idhmR_2010)
 
+lm.morantest(model.idhmR_2010,mat_dist_list, alternative = "two.sided")
+errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
+           IDHM_R_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2),
+           weights = modelnvc$weights,
+           listw =mat_dist_list
+)->m.idhmR_spat
+summary(m.idhmR_spat)
 
 #outcome IDHM_L
-model.idhmL_2010<- glm(data = dbcap1_PS, 
+model.idhmL_2010<- glm(data = data[-c(38,616),], 
                         IDHM_L_2010 ~
-                          nvcPerc_10 +
-                          I(nvcPerc_10^2),
+                          nvcPerc_2010 +
+                          I(nvcPerc_2010^2),
                         weights = modelnvc$weights
 )
 summary(model.idhmL_2010)
 
-
-#outcome IDHM
-model.idhm_2010<- glm(data = dbcap1_PS, 
-                      IDHM_2010 ~
-                        nvcPerc_10 +
-                        I(nvcPerc_10^2),
-                      weights = modelnvc$weights
-)
-summary(model.idhm_2010)
-
+lm.morantest(model.idhmL_2010,mat_dist_list, alternative = "two.sided")
+errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
+           IDHM_L_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2),
+           weights = modelnvc$weights,
+           listw =mat_dist_list
+)->m.idhmR_spat
+summary(m.idhmR_spat)
 
 #outcome IDHM_E
-model.idhmE_2010<- glm(data = dbcap1_PS, 
+model.idhmE_2010<- glm(data = data[-c(38,616),], 
                        IDHM_E_2010 ~
-                         nvcPerc_10 +
-                         I(nvcPerc_10^2),
+                         nvcPerc_2010 +
+                         I(nvcPerc_2010^2),
                        weights = modelnvc$weights
 )
 summary(model.idhmE_2010)
 
+lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")
+errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
+           IDHM_E_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2),
+           weights = modelnvc$weights,
+           listw =mat_dist_list
+)->m.idhmE_spat
+summary(m.idhmE_spat)
 
 #outcome gini
-model.gini_2010<- glm(data = dbcap1_PS, 
+model.gini_2010<- glm(data = data[-c(38,616),], 
                       gini_2010 ~
-                        nvcPerc_10 +
-                        I(nvcPerc_10^2),
+                        nvcPerc_2010 +
+                        I(nvcPerc_2010^2),
                       weights = modelnvc$weights
 )
 summary(model.gini_2010)
 
+lm.morantest(model.gini_2010,mat_dist_list, alternative = "two.sided")
+errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
+           gini_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2),
+           weights = modelnvc$weights,
+           listw =mat_dist_list
+)->m.gini_spat
+summary(m.gini_spat)
 
 #outcome u5mort
-model.u5mort_2010<- glm(data = dbcap1_PS, 
-                        u5mort_2010.x ~
-                          nvcPerc_10 +
-                          I(nvcPerc_10^2),
-                        weights = modelnvc$weights
+model.u5mort_2010<- glm(data = data[-c(38,616),], 
+                      u5mort_2010 ~
+                        nvcPerc_2010 +
+                        I(nvcPerc_2010^2),
+                      weights = modelnvc$weights
 )
 summary(model.u5mort_2010)
 
-
-coef(model.idhm_2010)
-coef(model.idhmE_2010)
-coef(model.idhmR_2010)
-coef(model.idhmL_2010)
-coef(model.gini_2010)
-coef(model.expov10)
-coef(model.u5mort_2010)
-
-#### Non-parametric weightning
-####Fong et al, 2018 method
-model.expov10NP<- glm(data = dbcap1_PS, 
-                    expov_2010 ~
-                      nvcPerc_10 +
-                      I(nvcPerc_10^2),
-                    weights = modelNPnvc$weights
-)
-summary(model.expov10NP)
-
-#outcome IDHM_R
-model.idhmR_2010NP<- glm(data = dbcap1_PS, 
-                       IDHM_R_2010 ~
-                         nvcPerc_10 +
-                         I(nvcPerc_10^2),
-                       weights = modelNPnvc$weights
-)
-summary(model.idhmR_2010NP)
-
-
-#outcome IDHM_L
-model.idhmL_2010NP<- glm(data = dbcap1_PS, 
-                       IDHM_L_2010 ~
-                         nvcPerc_10 +
-                         I(nvcPerc_10^2),
-                       weights = modelNPnvc$weights
-)
-summary(model.idhmL_2010NP)
-
-
-#outcome IDHM
-model.idhm_2010NP<- glm(data = dbcap1_PS, 
-                      IDHM_2010 ~
-                        nvcPerc_10 +
-                        I(nvcPerc_10^2),
-                      weights = modelNPnvc$weights
-)
-summary(model.idhm_2010NP)
-
-
-#outcome IDHM_E
-model.idhmE_2010NP<- glm(data = dbcap1_PS, 
-                       IDHM_E_2010 ~
-                         nvcPerc_10 +
-                         I(nvcPerc_10^2),
-                       weights = modelNPnvc$weights
-)
-summary(model.idhmE_2010NP)
-
-
-#outcome gini
-model.gini_2010NP<- glm(data = dbcap1_PS, 
-                      gini_2010 ~
-                        nvcPerc_10 +
-                        I(nvcPerc_10^2),
-                      weights = modelNPnvc$weights
-)
-summary(model.gini_2010NP)
-
-
-#outcome u5mort
-model.u5mort_2010NP<- glm(data = dbcap1_PS, 
-                        u5mort_2010.x ~
-                          nvcPerc_10 +
-                          I(nvcPerc_10^2),
-                        weights = modelNPnvc$weights
-)
-summary(model.u5mort_2010NP)
-
-coef(model.idhm_2010NP)
-coef(model.idhmE_2010NP)
-coef(model.idhmR_2010NP)
-coef(model.idhmL_2010NP)
-coef(model.gini_2010NP)
-coef(model.expov10NP)
-coef(model.u5mort_2010NP)
+lm.morantest(model.u5mort_2010,mat_dist_list, alternative = "two.sided")
+errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
+           u5mort_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2),
+           weights = modelnvc$weights,
+           listw =mat_dist_list
+)->m.u5mort_spat
+summary(m.u5mort_spat)
 
 #Figures ####
-#IDHM
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
-  theme_classic()+
-  xlab("NVC (%)")+
-  ylab("IDHM")->fig.IDHM_10
-
 #IDHM_E
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_E_2010))+
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_E_2010))+
   geom_point(alpha  = 0.5)+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
@@ -285,7 +205,7 @@ ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_E_2010))+
   ylab("IDHM_E")->fig.IDHM_E_10
 
 #IDHM_L
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_L_2010))+
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_L_2010))+
   geom_point(alpha  = 0.5)+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
@@ -293,7 +213,7 @@ ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_L_2010))+
   ylab("IDHM_L")->fig.IDHM_L_10
 
 #IDHM_R
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_R_2010))+
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_R_2010))+
   geom_point(alpha  = 0.5)+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
@@ -301,7 +221,7 @@ ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = IDHM_R_2010))+
   ylab("IDHM_R")->fig.IDHM_R_10
 
 #gini
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = gini_2010))+
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = gini_2010))+
   geom_point(alpha  = 0.5)+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
@@ -309,7 +229,7 @@ ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = gini_2010))+
   ylab("Gini Index")->fig.gini_10
 
 #Extreme poverty
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = expov_2010))+
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = expov_2010))+
   geom_point(alpha  = 0.5)+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
@@ -317,7 +237,7 @@ ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = expov_2010))+
   ylab("Extrem Poverty")->fig.expov_10
 
 #u5mort
-ggplot(data = dbcap1_PS, aes(x = nvcPerc_10, y = u5mort_2010.x))+
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = u5mort_2010))+
   geom_point(alpha  = 0.5)+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
