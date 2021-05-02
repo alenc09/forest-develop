@@ -73,6 +73,7 @@ nb2listw(mat_dist2)->mat_dist_list
 
 ###Average Treatment Effect####
 ####Fong et al, 2018 method
+#outcome expov####
 model.expov10<- glm(data = data[-c(38,616),], 
                     expov_2010 ~
                       nvcPerc_2010 +
@@ -133,7 +134,7 @@ errorsarlm(expov_2010 ~
 summary(m.expov_spat2)
 LR.sarlm(m.expov_spat, m.expov_spat2)
 
-#outcome IDHM_R
+#outcome IDHM_R####
 model.idhmR_2010<- glm(data = data[-c(38,616),], 
                     IDHM_R_2010 ~
                       nvcPerc_2010 +
@@ -143,6 +144,33 @@ model.idhmR_2010<- glm(data = data[-c(38,616),],
 summary(model.idhmR_2010)
 
 lm.morantest(model.idhmR_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(IDHM_R_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2)+
+           area_mun +
+           #p_agro_10 +
+           perc_urb_10+
+           #prodAss_06+
+           #nascProt_06+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           #pibAgroPC_2010+
+           #pibIndPC_2010+
+           pibServpubPC_2010,
+           #carvVeg_10+
+           #lenha_10,
+       data = data[-c(38,616),],
+       listw = mat_dist_list, 
+         type = "sac")->m.idhmR_spat
+summary(m.idhmR_spat)
+summary(impacts(m.idhmR_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_idhmR
+
 errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
            IDHM_R_2010 ~
              nvcPerc_2010 +
@@ -152,7 +180,7 @@ errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabili
 )->m.idhmR_spat
 summary(m.idhmR_spat)
 
-#outcome IDHM_L
+#outcome IDHM_L####
 model.idhmL_2010<- glm(data = data[-c(38,616),], 
                         IDHM_L_2010 ~
                           nvcPerc_2010 +
@@ -162,6 +190,33 @@ model.idhmL_2010<- glm(data = data[-c(38,616),],
 summary(model.idhmL_2010)
 
 lm.morantest(model.idhmL_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(IDHM_L_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2)+
+           area_mun +
+           #p_agro_10 +
+           perc_urb_10+
+           #prodAss_06+
+           #nascProt_06+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           #pibAgroPC_2010+
+           #pibIndPC_2010+
+           pibServpubPC_2010,
+         #carvVeg_10+
+         #lenha_10,
+         data = data[-c(38,616),],
+         listw = mat_dist_list, 
+         type = "sac")->m.idhmL_spat
+summary(m.idhmL_spat)
+summary(impacts(m.idhmL_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_idhmL
+
 errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
            IDHM_L_2010 ~
              nvcPerc_2010 +
@@ -171,7 +226,7 @@ errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabili
 )->m.idhmR_spat
 summary(m.idhmR_spat)
 
-#outcome IDHM_E
+#outcome IDHM_E####
 model.idhmE_2010<- glm(data = data[-c(38,616),], 
                        IDHM_E_2010 ~
                          nvcPerc_2010 +
@@ -181,6 +236,33 @@ model.idhmE_2010<- glm(data = data[-c(38,616),],
 summary(model.idhmE_2010)
 
 lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(IDHM_E_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2)+
+           area_mun +
+           #p_agro_10 +
+           perc_urb_10+
+           #prodAss_06+
+           #nascProt_06+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           #pibAgroPC_2010+
+           #pibIndPC_2010+
+           pibServpubPC_2010,
+         #carvVeg_10+
+         #lenha_10,
+         data = data[-c(38,616),],
+         listw = mat_dist_list, 
+         type = "sac")->m.idhmE_spat
+summary(m.idhmE_spat)
+summary(impacts(m.idhmE_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_idhmE
+
 errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
            IDHM_E_2010 ~
              nvcPerc_2010 +
@@ -190,7 +272,7 @@ errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabili
 )->m.idhmE_spat
 summary(m.idhmE_spat)
 
-#outcome gini
+#outcome gini####
 model.gini_2010<- glm(data = data[-c(38,616),], 
                       gini_2010 ~
                         nvcPerc_2010 +
@@ -200,6 +282,33 @@ model.gini_2010<- glm(data = data[-c(38,616),],
 summary(model.gini_2010)
 
 lm.morantest(model.gini_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(gini_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2)+
+           area_mun +
+           #p_agro_10 +
+           perc_urb_10+
+           #prodAss_06+
+           #nascProt_06+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           #pibAgroPC_2010+
+           #pibIndPC_2010+
+           pibServpubPC_2010,
+         #carvVeg_10+
+         #lenha_10,
+         data = data[-c(38,616),],
+         listw = mat_dist_list, 
+         type = "sac")->m.gini_spat
+summary(m.gini_spat)
+summary(impacts(m.gini_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_gini
+
 errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
            gini_2010 ~
              nvcPerc_2010 +
@@ -209,7 +318,7 @@ errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabili
 )->m.gini_spat
 summary(m.gini_spat)
 
-#outcome u5mort
+#outcome u5mort####
 model.u5mort_2010<- glm(data = data[-c(38,616),], 
                       u5mort_2010 ~
                         nvcPerc_2010 +
@@ -219,6 +328,33 @@ model.u5mort_2010<- glm(data = data[-c(38,616),],
 summary(model.u5mort_2010)
 
 lm.morantest(model.u5mort_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(u5mort_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2)+
+           area_mun +
+           #p_agro_10 +
+           perc_urb_10+
+           #prodAss_06+
+           #nascProt_06+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           #pibAgroPC_2010+
+           #pibIndPC_2010+
+           pibServpubPC_2010,
+         #carvVeg_10+
+         #lenha_10,
+         data = data[-c(38,616),],
+         listw = mat_dist_list, 
+         type = "sac")->m.u5mort_spat
+summary(m.u5mort_spat)
+summary(impacts(m.u5mort_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_u5mort
+
 errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
            u5mort_2010 ~
              nvcPerc_2010 +
