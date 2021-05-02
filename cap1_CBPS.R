@@ -22,13 +22,9 @@ read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/db2cap1_cbps_clean.xlsx")-
 glimpse(data)
 data$code_state<- as.factor(data$code_state)
 hist(data$nvcPerc_2010)
-
-#data exploration####
-hist(data$nvcPerc_2010)
-hist(data$nvcPerc_2010_norm)#parece menos normal que sem ser transformado...
 glimpse(data)
 ggpairs(data[,12:29])
-as.data.frame(scale(data[,12:29]))-> data[,12:29]
+as.data.frame(scale(data[,12:31]))-> data[,12:31]
 
 #data analysis####
 ##Propensity scores for 2010 model
@@ -86,19 +82,56 @@ model.expov10<- glm(data = data[-c(38,616),],
 summary(model.expov10)
 lm.morantest(model.expov10, mat_dist_list, alternative = "two.sided")
 
-moran.test(mun_cat_data[-c(38,616),]$expov_2010, mat_dist_list, alternative = "two.sided") # tentativa de identificar qual variável carrega a dependencia espacial
-moran.test(mun_cat_data[-c(38,616),]$gini_2010, mat_dist_list, alternative = "two.sided")
-moran.test(mun_cat_data[-c(38,616),]$IDHM_E_2010, mat_dist_list, alternative = "two.sided")
-moran.test(mun_cat_data[-c(38,616),]$nvcPerc_2010, mat_dist_list, alternative = "two.sided")
-
-errorsarlm(data = data[-c(38,616),], #Spatial error model with Inverse probabilit weights
-         expov_2010 ~
+sacsarlm(expov_2010 ~
            nvcPerc_2010 +
-           I(nvcPerc_2010^2),
-         weights = modelnvc$weights,
-         listw =mat_dist_list
-        )->m.expov_spat
+           I(nvcPerc_2010^2)+
+               area_mun +
+               #p_agro_10 +
+               perc_urb_10+
+               #prodAss_06+
+               #nascProt_06+
+               riosProt_06+
+               irrigPerc_06+
+               rain_var+
+               percProp_S+
+               #pibAgroPC_2010+
+               #pibIndPC_2010+
+               pibServpubPC_2010,
+               #carvVeg_10+
+               #lenha_10,
+         data = data[-c(38,616),],
+         listw = mat_dist_list, 
+         type = "sac")->m.expov_spat
 summary(m.expov_spat)
+summary(impacts(m.expov_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_expov
+
+errorsarlm(expov_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2)+
+             area_mun +
+             p_agro_10 +
+             #perc_rur_10 +
+             perc_urb_10+
+             prodAss_06+
+             nascProt_06+
+             riosProt_06+
+             irrigPerc_06+
+             rain_var+
+             percProp_S+
+             #percProp_M+
+             #percProp_L+
+             pibAgroPC_2010+
+             pibIndPC_2010+
+             pibServpubPC_2010+
+             carvVeg_10+
+             lenha_10,
+           #wood_10,, 
+           data= data[-c(38,616),], listw = mat_dist_list)->m.expov_spat2
+summary(m.expov_spat2)
+LR.sarlm(m.expov_spat, m.expov_spat2)
 
 #outcome IDHM_R
 model.idhmR_2010<- glm(data = data[-c(38,616),], 
