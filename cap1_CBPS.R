@@ -3,8 +3,6 @@
 #Analysis made following Walter Leite's tutorial at http://www.practicalpropensityscore.com/continuous.html
 #and Christian Fong, Chad Hazlett, and Kosuke Imai, 2018 - .
 
-setwd("/home/lucas/Documents/Doutorado/tese/cap1/")
-
 #Libraries
 library(readxl)
 library(dplyr)
@@ -16,100 +14,97 @@ library(spatialreg)
 library(ggplot2)
 
 
-read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/db2cap1_cbps_clean.xlsx")-> data
+read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/dbcap1_full_clean.xlsx")-> data
 
 #data exploration
 glimpse(data)
 data$code_state<- as.factor(data$code_state)
 hist(data$nvcPerc_2010)
-glimpse(data)
-ggpairs(data[,12:29])
-as.data.frame(scale(data[,12:31]))-> data[,12:31]
+
+as.data.frame(scale(data[,12:39]))-> data[,12:39]
 
 #data analysis####
-##Propensity scores for 2010 model
-### Create CBPS ####
-modelnvc<- CBPS(data = data[-c(38,616),], #remove varibales with correlation higher than 0.4 in both directions
+##Propensity scores for 2010 model####
+### Create CBPS for each outcome
+#IDHM_E####
+#CBPS
+ggpairs(data = data, columns = c(12, 13, 15, 17, 18, 19, 20, 21, 25, 26, 27, 28, 29, 32, 33, 36, 37, 38, 39 ))      
+
+mod.cbps.idhmE<- CBPS(data = data[-c(38,600, 786),], 
               nvcPerc_2010 ~      
               area_mun +
-              p_agro_10 +
-              #perc_rur_10 +
               perc_urb_10+
-              prodAss_06+
-              nascProt_06+
-              riosProt_06+
-              irrigPerc_06+
-              rain_var+
+              rain_var +
               percProp_S+
-              #percProp_M+
-              #percProp_L+
-              pibAgroPC_2010+
               pibIndPC_2010+
               pibServpubPC_2010+
-              carvVeg_10+
-              lenha_10,
-              #wood_10,
+              popDens_10+
+              MeanSlopefor2004analysis +
+              MeanElevationfor2004analysis +
+              capMed_06 + 
+              bovMed_06 +
+              carvVeg_10 +
+              lenha_10 +
+              irrigPerc_06 +
+              riosProt_06,
               method = "exact",
               ATT=0
               )
-summary(modelnvc)
+summary(mod.cbps.idhmE)
 
 ### Evaluate CBPS ####
-bal.covar<- balance(modelnvc)
-bal.covar<- data.frame(original=bal.covar$unweighted, 
+bal.covar.idhme<- balance(mod.cbps.idhmE)
+bal.covar.idhme<- data.frame(original=bal.covar$unweighted, 
                                 weighted=bal.covar$balanced)
-names(bal.covar)<- c("Pearson r unweighted", "Pearson r IPW")
-summary(bal.covar)
-boxplot(bal.covar)
+names(bal.covar.idhme)<- c("Pearson r unweighted", "Pearson r IPW")
+summary(bal.covar.idhme)
+boxplot(bal.covar.idhme)
 
-### check spatial correlation in CBPS stage ####
+#spatial neighborhood matrix ####
 read_sf("/home/lucas/Documentos/Doutorado/Dados/muncat_2020.shp")->mun_cat
 data$code_muni<-as.character(data$code_muni)
 inner_join(mun_cat, data, by = c("CD_MUN" = "code_muni"))-> mun_cat_data
-poly2nb(mun_cat_data[-c(38,616),], queen=TRUE)-> mat_dist2
+poly2nb(mun_cat_data[-c(36, 600, 786),], queen=TRUE)-> mat_dist2
 nb2listw(mat_dist2)->mat_dist_list
-
-#não consegui encontrar uma forma de testar o resíduos do CBPS
 
 ###Average Treatment Effect####
 ####Fong et al, 2018 method
-#outcome expov####
-model.expov10<- glm(data = data[-c(38,616),], 
-                    expov_2010 ~
-                      nvcPerc_2010 +
-                      I(nvcPerc_2010^2),
-                    weights = modelnvc$weights
-                    )
-summary(model.expov10)
-lm.morantest(model.expov10, mat_dist_list, alternative = "two.sided")
 
-sacsarlm(expov_2010 ~
+#outcome IDHM_E####
+model.idhmE_2010<- glm(data = data[-c(38,600, 786),], 
+                       IDHM_E_2010 ~
+                         nvcPerc_2010 +
+                         I(nvcPerc_2010^2),
+                       weights = mod.cbps.idhmE$weights
+)
+summary(model.idhmE_2010)
+
+lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")->moran.idhmE
+
+sacsarlm(IDHM_E_2010 ~
            nvcPerc_2010 +
            I(nvcPerc_2010^2)+
-               area_mun +
-               #p_agro_10 +
-               perc_urb_10+
-               #prodAss_06+
-               #nascProt_06+
-               riosProt_06+
-               irrigPerc_06+
-               rain_var+
-               percProp_S+
-               #pibAgroPC_2010+
-               #pibIndPC_2010+
-               pibServpubPC_2010,
-               #carvVeg_10+
-               #lenha_10,
-         data = data[-c(38,616),],
+           area_mun +
+           perc_urb_10+
+           rain_var+
+           percProp_S+
+           pibIndPC_2010+
+           pibServpubPC_2010+
+           popDens_10+
+           MeanElevationfor2004analysis+
+           bovMed_06+
+           carvVeg_10+
+           lenha_10,
+         data = data[-c(38,600,786),],
          listw = mat_dist_list, 
-         type = "sac")->m.expov_spat
-summary(m.expov_spat)
-summary(impacts(m.expov_spat,
+         type = "sac")->m.idhmE_spat
+summary(m.idhmE_spat)
+summary(impacts(m.idhmE_spat,
                 listw = mat_dist_list,
                 R = 500),
-        zstats = TRUE)->summ.sac_expov
+        zstats = TRUE)->summ.sac_idhmE
 
-errorsarlm(expov_2010 ~
+errorsarlm(IDHM_E_2010 ~
              nvcPerc_2010 +
              I(nvcPerc_2010^2)+
              area_mun +
@@ -124,11 +119,10 @@ errorsarlm(expov_2010 ~
              #pibAgroPC_2010+
              #pibIndPC_2010+
              pibServpubPC_2010,
-             #carvVeg_10+
-             #lenha_10,
-           data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.expov_spat2
-summary(m.expov_spat2)
-LR.sarlm(m.expov_spat, m.expov_spat2)
+           #carvVeg_10+
+           #lenha_10,
+           data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmE_spat2
+summary(m.idhmE_spat)
 
 #outcome IDHM_R####
 model.idhmR_2010<- glm(data = data[-c(38,616),], 
@@ -139,7 +133,7 @@ model.idhmR_2010<- glm(data = data[-c(38,616),],
 )
 summary(model.idhmR_2010)
 
-lm.morantest(model.idhmR_2010,mat_dist_list, alternative = "two.sided")
+lm.morantest(model.idhmR_2010,mat_dist_list, alternative = "two.sided")->moran.idhmR
 
 sacsarlm(IDHM_R_2010 ~
            nvcPerc_2010 +
@@ -196,7 +190,7 @@ model.idhmL_2010<- glm(data = data[-c(38,616),],
 )
 summary(model.idhmL_2010)
 
-lm.morantest(model.idhmL_2010,mat_dist_list, alternative = "two.sided")
+lm.morantest(model.idhmL_2010,mat_dist_list, alternative = "two.sided")->moran.idhmL
 
 sacsarlm(IDHM_L_2010 ~
            nvcPerc_2010 +
@@ -244,18 +238,19 @@ errorsarlm(IDHM_L_2010 ~
            data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmL_spat2
 summary(m.idhmR_spat)
 
-#outcome IDHM_E####
-model.idhmE_2010<- glm(data = data[-c(38,616),], 
-                       IDHM_E_2010 ~
-                         nvcPerc_2010 +
-                         I(nvcPerc_2010^2),
-                       weights = modelnvc$weights
+
+
+#outcome expov####
+model.expov10<- glm(data = data[-c(38,616),], 
+                    expov_2010 ~
+                      nvcPerc_2010 +
+                      I(nvcPerc_2010^2),
+                    weights = modelnvc$weights
 )
-summary(model.idhmE_2010)
+summary(model.expov10)
+lm.morantest(model.expov10, mat_dist_list, alternative = "two.sided")->moran.expov
 
-lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")
-
-sacsarlm(IDHM_E_2010 ~
+sacsarlm(expov_2010 ~
            nvcPerc_2010 +
            I(nvcPerc_2010^2)+
            area_mun +
@@ -274,14 +269,14 @@ sacsarlm(IDHM_E_2010 ~
          #lenha_10,
          data = data[-c(38,616),],
          listw = mat_dist_list, 
-         type = "sac")->m.idhmE_spat
-summary(m.idhmE_spat)
-summary(impacts(m.idhmE_spat,
+         type = "sac")->m.expov_spat
+summary(m.expov_spat)
+summary(impacts(m.expov_spat,
                 listw = mat_dist_list,
                 R = 500),
-        zstats = TRUE)->summ.sac_idhmE
+        zstats = TRUE)->summ.sac_expov
 
-errorsarlm(IDHM_E_2010 ~
+errorsarlm(expov_2010 ~
              nvcPerc_2010 +
              I(nvcPerc_2010^2)+
              area_mun +
@@ -298,8 +293,9 @@ errorsarlm(IDHM_E_2010 ~
              pibServpubPC_2010,
            #carvVeg_10+
            #lenha_10,
-           data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmE_spat2
-summary(m.idhmE_spat)
+           data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.expov_spat2
+summary(m.expov_spat2)
+LR.sarlm(m.expov_spat, m.expov_spat2)
 
 #outcome gini####
 model.gini_2010<- glm(data = data[-c(38,616),], 
@@ -310,7 +306,7 @@ model.gini_2010<- glm(data = data[-c(38,616),],
 )
 summary(model.gini_2010)
 
-lm.morantest(model.gini_2010,mat_dist_list, alternative = "two.sided")
+lm.morantest(model.gini_2010,mat_dist_list, alternative = "two.sided")->moran.gini
 
 sacsarlm(gini_2010 ~
            nvcPerc_2010 +
@@ -367,7 +363,7 @@ model.u5mort_2010<- glm(data = data[-c(38,616),],
 )
 summary(model.u5mort_2010)
 
-lm.morantest(model.u5mort_2010,mat_dist_list, alternative = "two.sided")
+lm.morantest(model.u5mort_2010,mat_dist_list, alternative = "two.sided")->moran.u5mort
 
 sacsarlm(u5mort_2010 ~
            nvcPerc_2010 +
@@ -440,14 +436,6 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_R_2010))+
   xlab("NVC (%)")+
   ylab("IDHM_R")->fig.IDHM_R_10
 
-#gini
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = gini_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
-  theme_classic()+
-  xlab("NVC (%)")+
-  ylab("Gini Index")->fig.gini_10
-
 #Extreme poverty
 ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = expov_2010))+
   geom_point(alpha  = 0.5)+
@@ -455,6 +443,14 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = expov_2010))+
   theme_classic()+
   xlab("NVC (%)")+
   ylab("Extrem Poverty")->fig.expov_10
+
+#gini
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = gini_2010))+
+  geom_point(alpha  = 0.5)+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+  theme_classic()+
+  xlab("NVC (%)")+
+  ylab("Gini Index")->fig.gini_10
 
 #u5mort
 ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = u5mort_2010))+
