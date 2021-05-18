@@ -24,10 +24,18 @@ hist(data$nvcPerc_2010)
 as.data.frame(scale(data[,12:39]))-> data[,12:39]
 
 #data analysis####
+
+#spatial neighborhood matrix ####
+read_sf("/home/lucas/Documentos/Doutorado/Dados/muncat_2020.shp")->mun_cat
+data$code_muni<-as.character(data$code_muni)
+inner_join(mun_cat, data, by = c("CD_MUN" = "code_muni"))-> mun_cat_data
+poly2nb(mun_cat_data[-c(36, 600, 786),], queen=TRUE)-> mat_dist2
+nb2listw(mat_dist2)->mat_dist_list
+
 ##Propensity scores for 2010 model####
 ### Create CBPS for each outcome
 #IDHM_E####
-#CBPS
+##CBPS ####
 ggpairs(data = data, columns = c(12, 13, 15, 17, 18, 19, 20, 21, 25, 26, 27, 28, 29, 32, 33, 36, 37, 38, 39 ))      
 
 mod.cbps.idhmE<- CBPS(data = data[-c(38,600, 786),], 
@@ -60,17 +68,7 @@ names(bal.covar.idhme)<- c("Pearson r unweighted", "Pearson r IPW")
 summary(bal.covar.idhme)
 boxplot(bal.covar.idhme)
 
-#spatial neighborhood matrix ####
-read_sf("/home/lucas/Documentos/Doutorado/Dados/muncat_2020.shp")->mun_cat
-data$code_muni<-as.character(data$code_muni)
-inner_join(mun_cat, data, by = c("CD_MUN" = "code_muni"))-> mun_cat_data
-poly2nb(mun_cat_data[-c(36, 600, 786),], queen=TRUE)-> mat_dist2
-nb2listw(mat_dist2)->mat_dist_list
-
-###Average Treatment Effect####
-####Fong et al, 2018 method
-
-#outcome IDHM_E####
+## outcome IDHM_E####
 model.idhmE_2010<- glm(data = data[-c(38,600, 786),], 
                        IDHM_E_2010 ~
                          nvcPerc_2010 +
@@ -124,7 +122,30 @@ errorsarlm(IDHM_E_2010 ~
            data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmE_spat2
 summary(m.idhmE_spat)
 
-#outcome IDHM_R####
+# IDHM_R####
+## CBPS####
+mod.cbps.idhmR<- CBPS(data = data[-c(38,600, 786),], 
+                      nvcPerc_2010 ~      
+                        area_mun +
+                        p_agro_10+
+                        perc_urb_10 +
+                        irrigPerc_06 +
+                        rain_var +
+                        percProp_S +
+                        pibAgroPC_2010 +
+                        carvVeg_10 +
+                        wood_10 +
+                        pibServpubPC_2010+
+                        capMed_06 + 
+                        bovMed_06 +
+                        popDens_10+
+                        Sumkm2_ProtectedArea2013
+                        ,
+                      method = "exact",
+                      ATT=0
+                     )
+summary(mod.cbps.idhmR)
+
 model.idhmR_2010<- glm(data = data[-c(38,616),], 
                     IDHM_R_2010 ~
                       nvcPerc_2010 +
