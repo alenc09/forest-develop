@@ -7,6 +7,8 @@ library(dplyr)
 library(ggplot2)
 library(geobr)
 library(ggthemes)
+library(ggpubr)
+library(cowplot)
 
 #data####
 st_read(dsn = "/home/lucas/Documentos/Doutorado/Dados/shapes/", layer = "muncat_2020")->map_caat
@@ -32,8 +34,13 @@ ggplot()+
   geom_sf(data=uf_caat, fill="transparent", color = "black", lwd = 0.3)+
   coord_sf(xlim = c(-47,-33), ylim = c(-18,-3))+
   theme_map()+
-  theme(legend.position = c(0.8, 0.2),
+  theme(legend.position = c(0.7, 0.1),
         legend.title = element_text(size = 12),
-        legend.text = element_text(size = 10))
+        legend.text = element_text(size = 10))->defStage_map
 
-        
+plot_grid(defStage_map, plot_grid(nvc.defStage_2010, mean_defRate, nrow = 2, labels = c("b","c"),
+                                  label_y = c(1,1.1)),
+          rel_widths = c(2,1), labels = "a")->fig1
+
+ggsave(plot = fig1, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig1.png")
+

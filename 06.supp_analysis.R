@@ -19,8 +19,8 @@ ggplot(data = ., aes(x = as.factor(def.stage_10), y = mean_defPerc,
   geom_boxplot()+
   scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"))+
   scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
-  labs(x = "Deforestation stage (2010)", y = "Mean Def. rate (1991-2010)")+
-  theme_classic(base_size = 22)+
+  labs(x = "Deforestation stage", y = "Mean Def. rate (1991-2010)")+
+  theme_classic(base_size = 12)+
   theme(legend.position="none")->mean_defRate
 
 TukeyHSD(aov(data = dbcap1_rma, mean_defPerc ~ as.factor(def.stage_10)))
@@ -44,3 +44,22 @@ dbcap1_rma%>%
             nvc.var.sd = sd(nvc.cc))%>%
   glimpse
 
+#supp fig 1####
+dbcap1_rma%>%
+  select(code_muni, nvc.perc_91, nvc.perc_10, def.stage_10)%>%
+  mutate(net.nvc = nvc.perc_10 - nvc.perc_91,
+         mean.nvc.change = mean(net.nvc),
+         sd.nvc.change = sd(net.nvc))%>%
+  glimpse->db.net.nvc
+
+db.net.nvc%>%
+  ggplot(aes(x = as.factor(def.stage_10), y = net.nvc, fill=as.factor(def.stage_10)))+
+  geom_hline(yintercept = 0, linetype = 2)+
+  geom_boxplot()+
+  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"))+
+  scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
+  labs(x = "Deforestation stage in 2010", y = "Net forest cover")+
+  stat_summary(fun = mean, geom = "point", size = 1, colour = "red")+
+  theme_classic(base_size = 22)+
+  theme(legend.position="none") -> net_nvc  
+ggsave(plot = net_nvc, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/supp_fig1.png")  

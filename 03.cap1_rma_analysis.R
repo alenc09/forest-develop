@@ -85,6 +85,16 @@ dbcap1_rma$def.stage_10<-
                           false = if_else(condition = dbcap1_rma$nvc.perc_10 <= 33 & dbcap1_rma$nvc.perc_10 >= 0,
                                           true = 3,
                                           false = 0)))
+
+ggplot(data = dbcap1_rma, aes(x = as.factor(def.stage_10), y = nvc.perc_10,
+                              fill = as.factor(def.stage_10)))+ 
+  geom_boxplot()+
+  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"))+
+  scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
+  labs(x = "Deforestation stage", y = "NVC (%) in 2010")+
+  theme_classic(base_size = 12)+
+  theme( legend.position="none")->nvc.defStage_2010
+
 ggplot(data = dbcap1_rma, aes(x = as.factor(def.stage_10), y = tx.desmat.perc_10,
                               fill = as.factor(def.stage_10)))+# , group = def_stage, fill = def_stage))+
   geom_boxplot()+
@@ -219,27 +229,6 @@ ggplot(data = plF_nvcs, aes(x = year, y = gini, fill = def.stage)) +
               xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
               xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
               annotations = c("a","a","a", "b", "c", "bc", "a", "d", "d"),
-             tip_length = 0)+
-  theme_classic(base_size = 14) -> rma_gini
-ggsave(filename = "gini_defstage.png")
-
-lmer.gini<- lmer(data = plF_nvcs, formula = gini ~ def.stage*year + (1 | code_muni))
-tab.gini<- car::Anova(lmer.gini, type = "II")
-summary(lmer.gini)
-pw.gini<- emmeans(lmer.gini, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
-
-##gini####
-ggplot(data = plF_nvcs, aes(x = year, y = gini, fill = def.stage)) +
-  geom_boxplot(aes(middle = mean(gini)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
-                                                                            "Intermediate",
-                                                                            "Advanced"),
-                    name = "Deforestation stage")+
-  labs(x = "Year", y = "Gini Index")+
-  geom_signif(y_position = c(0.94, 0.94, 0.94, 0.84, 0.84, 0.84, 0.81, 0.81, 0.81), 
-              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
-              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
-              annotations = c("a","a","a", "b", "c", "bc", "a", "d", "d"),
               tip_length = 0)+
   theme_classic(base_size = 14) -> rma_gini
 ggsave(filename = "gini_defstage.png")
@@ -269,3 +258,14 @@ lmer.u5mort<- lmer(data = plF_nvcs, formula = u5mort ~ def.stage*year + (1 | cod
 tab.u5mort<- car::Anova(lmer.u5mort, type = "II")
 summary(lmer.u5mort)
 pw.u5mort<- emmeans(lmer.u5mort, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+#Figure 2####
+ggarrange(rma_idhE, rma_idhL, rma_idhR, rma_expov, rma_gini, rma_u5mort,
+          labels = c("a", "b", "c", "d", "e", "f"),
+          common.legend = T,
+          legend = "bottom",
+          )->fig2
+ggsave(plot = fig2,
+       filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig2.png",
+       width = 11,
+       height = 8)

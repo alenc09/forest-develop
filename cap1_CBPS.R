@@ -422,7 +422,7 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_E_2010))+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
   xlab("NVC (%)")+
-  ylab("IDHM_E")->fig.IDHM_E_10
+  ylab("HDI - Education")->fig.IDHM_E_10
 
 #IDHM_L
 ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_L_2010))+
@@ -430,7 +430,7 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_L_2010))+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
   xlab("NVC (%)")+
-  ylab("IDHM_L")->fig.IDHM_L_10
+  ylab("HDI - Longevity")->fig.IDHM_L_10
 
 #IDHM_R
 ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_R_2010))+
@@ -438,7 +438,15 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_R_2010))+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
   theme_classic()+
   xlab("NVC (%)")+
-  ylab("IDHM_R")->fig.IDHM_R_10
+  ylab("HDI - Income")->fig.IDHM_R_10
+
+#Extreme poverty
+ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = expov_2010))+
+  geom_point(alpha  = 0.5)+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+  theme_classic()+
+  xlab("NVC (%)")+
+  ylab("Extreme poverty")->fig.expov_10
 
 #gini
 ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = gini_2010))+
@@ -448,14 +456,6 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = gini_2010))+
   xlab("NVC (%)")+
   ylab("Gini Index")->fig.gini_10
 
-#Extreme poverty
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = expov_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
-  theme_classic()+
-  xlab("NVC (%)")+
-  ylab("Extrem Poverty")->fig.expov_10
-
 #u5mort
 ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = u5mort_2010))+
   geom_point(alpha  = 0.5)+
@@ -464,4 +464,7 @@ ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = u5mort_2010))+
   xlab("NVC (%)")+
   ylab("Under five mortality")->fig.u5mort_10
 
-
+#3figure 3####
+ggarrange(fig.IDHM_E_10, fig.IDHM_L_10, fig.IDHM_R_10, fig.expov_10, fig.gini_10, fig.u5mort_10,
+          labels = c("a","b", "c", "d", "e", "f"))-> fig3
+ggsave(plot = fig3, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig3.png")
