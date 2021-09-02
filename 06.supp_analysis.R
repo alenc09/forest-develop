@@ -63,3 +63,13 @@ db.net.nvc%>%
   theme_classic(base_size = 22)+
   theme(legend.position="none") -> net_nvc  
 ggsave(plot = net_nvc, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/supp_fig1.png")  
+
+#descriptive evolution of indeces####
+plF_nvcs%>%
+  group_by(year)%>%
+  summarize(meanidhE = mean(IDHM_E),
+         seidhE = sd(IDHM_E)/sqrt(length(IDHM_E)),
+         meanu5mort = mean(u5mort),
+         seu5mort = sd(u5mort)/sqrt(length(u5mort))
+         )%>%
+  glimpse
