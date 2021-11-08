@@ -90,10 +90,15 @@ ggplot(data = dbcap1_rma, aes(x = as.factor(def.stage_10), y = nvc.perc_10,
                               fill = as.factor(def.stage_10)))+ 
   geom_boxplot()+
   scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"))+
-  scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
-  labs(x = "Deforestation stage", y = "NVC (%) in 2010")+
+  #scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
+  labs(y = "NVC (%) in 2010")+
   theme_classic(base_size = 12)+
-  theme( legend.position="none")->nvc.defStage_2010
+  theme(legend.position="none",
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(vjust = -1.5),
+        plot.margin = margin(5,6,5,-4)
+        )->nvc.defStage_2010
 
 ggplot(data = dbcap1_rma, aes(x = as.factor(def.stage_10), y = tx.desmat.perc_10,
                               fill = as.factor(def.stage_10)))+# , group = def_stage, fill = def_stage))+

@@ -34,13 +34,29 @@ ggplot()+
   geom_sf(data=uf_caat, fill="transparent", color = "black", lwd = 0.3)+
   coord_sf(xlim = c(-47,-33), ylim = c(-18,-3))+
   theme_map()+
-  theme(legend.position = c(0.7, 0.1),
+  theme(legend.position = c(0.65, 0.1),
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 10))->defStage_map
 
-plot_grid(defStage_map, plot_grid(nvc.defStage_2010, mean_defRate, nrow = 2, labels = c("b","c"),
-                                  label_y = c(1,1.1)),
-          rel_widths = c(2,1), labels = "a")->fig1
+plot_grid(
+  defStage_map,
+  plot_grid(
+    nvc.defStage_2010,
+    mean_defRate,
+    nrow = 2,
+    axis = "lr",
+    labels = c("b", "c"),
+    label_y = c(1, 1.1),
+    label_x = c(-0.05,-0.05)
+  ),
+  rel_widths = c(2, 1),
+  labels = "a"
+) -> fig1
 
-ggsave(plot = fig1, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig1.png")
+ggdraw()+
+  draw_plot(fig1)+
+  draw_plot(inset_map,
+            x = -0.03, y = 0.7, width = 0.30, height = 0.30)->fig1_inset
+
+ggsave(plot = fig1_inset, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig1_inset.png")
 
