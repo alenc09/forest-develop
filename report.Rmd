@@ -1,0 +1,62 @@
+---
+title: "Deforestation and development in Caatinga"
+author: "Lucas Alencar; Luke Parry & Felipe Melo"
+date: "25/04/2022"
+output: html_document
+---
+
+This markdown file was built to develop, share and test the reproducibility of data and analysis from my thesis' chapter one.
+
+<br/>
+The first step was classify (and locate) the municipalities of Caatinga in three deforestation frontiers according to their total deforested area. We also calculate the mean annual rate of deforestation inside each frontier group
+
+```{r message=FALSE, warning=FALSE}
+library(readxl)
+library(here)
+library(geobr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+```
+
+<br/>
+
+Import all data necessary to reproduce the results. Here we are only importing final datatable (and other files) ready for analysis. If you want all scripts made to create the final datatable and other objects, please contatc me at alencar.lucasc@gmail.com
+```{r}
+read_xlsx(here("data/dbcap1_rma.xlsx"))->dbcap1_rma
+read_xlsx(here("data/db2cap1_cbps_clean.xlsx"))-> dbcap1_cbps
+```
+<br/>
+
+To create the map of figure 1, it is necessary to download some shapes and manipulate the data table
+```{r}
+read_state() %>% 
+  filter(abbrev_state %in% c("BA","SE","PE", "AL","PB","RN","CE","PI", "MG"))->uf_caat #Download and filter polygons of brazilian states with Caatinga from oficial data source (IBGE)
+
+read_municipality(simplified = F) ->mun_br #download polygons of brazilian municipalities
+
+```
+
+```{r}
+dbcap1_rma%>%
+  select(code_muni, nvc.perc_10, def.stage_10)%>%
+  left_join(y = mun_br, by = "code_muni")%>%
+ggplot()+  
+  geom_sf(data=dbcap1_rma$geom,
+          aes(fill = factor(dbcap1_rma$def.stage_10)), lwd = 0.1, na.rm = T)+
+  scale_fill_manual(name = "Deforestation frontier",
+                    labels = c("Initial", "Intermediate", "Advanced", "No data"),
+                    values = c("#5c3811", "#ac6c13", "#ffa600"),
+                    na.value = "Grey60")+
+  geom_sf(data=uf_caat, fill="transparent", color = "black", lwd = 0.3)+
+  coord_sf(xlim = c(-47,-33), ylim = c(-18,-3))+
+  geom_text(data = uf_caat, aes(x= c(-42, -39.5,-36.5,-35.5, -34.5, -34.4, -36, -39,-42.4),
+                              y = c(-16.8, -15, -11, -10, -8.5, -7, -4.7, -2.9, -5),
+                              label = c("MG", "BA", "SE", "AL", "PE", "PB", "RN", "CE", "PI")),
+            size = 2)+
+  theme_map()+
+  theme(legend.position = c(0.65, 0.1),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10))
+```
+
