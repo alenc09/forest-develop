@@ -17,6 +17,13 @@ library(geobr)
 library(dplyr)
 library(ggplot2)
 library(ggthemes)
+library(cowplot)
+library(tidyr)
+library(ggsignif)
+library(lme4)
+library(emmeans)
+library(ggpubr)
+library(CBPS)
 ```
 
 <br/>
@@ -29,21 +36,23 @@ read_xlsx(here("data/db2cap1_cbps_clean.xlsx"))-> dbcap1_cbps
 <br/>
 
 To create the map of figure 1, it is necessary to download some shapes and manipulate the data table
-```{r}
+```{r message=FALSE, warning=FALSE}
 read_state() %>% 
   filter(abbrev_state %in% c("BA","SE","PE", "AL","PB","RN","CE","PI", "MG"))->uf_caat #Download and filter polygons of brazilian states with Caatinga from oficial data source (IBGE)
 
 read_municipality(simplified = F) ->mun_br #download polygons of brazilian municipalities
 
 ```
+<br/>
 
-Mapa dos municípios da caatinga categorizados em três fronteiras de desmatamento. 
+###Map of Caatinga municipalities categorized in three deforestation frontiers and their respective total deforested area and rates of deforestation
 ```{r}
 dbcap1_rma%>%
   select(code_muni, nvc.perc_10, def.stage_10)%>%
-  left_join(y = mun_br, by = "code_muni")%>%
+  left_join(y = mun_br, by = "code_muni") -> dbcap1_rma.map
+  
 ggplot()+  
-  geom_sf(data=dbcap1_rma$geom,
+  geom_sf(data=dbcap1_rma.map$geom,
           aes(fill = factor(dbcap1_rma$def.stage_10)), lwd = 0.1, na.rm = T)+
   scale_fill_manual(name = "Deforestation frontier",
                     labels = c("Initial", "Intermediate", "Advanced"),
@@ -58,6 +67,329 @@ ggplot()+
   theme_map()+
   theme(legend.position = c(0.65, 0.1),
         legend.title = element_text(size = 12),
-        legend.text = element_text(size = 10))
+        legend.text = element_text(size = 10))-> defStage_map
+
+dbcap1_rma %>% 
+  select(code_muni, nvc.perc_10, def.stage_10) %>% 
+  glimpse %>% 
+  ggplot()+
+  geom_boxplot(aes(x = as.factor(def.stage_10), y = 100 - nvc.perc_10, fill = as.factor(def.stage_10)))+
+  scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"))+
+  ylab("Deforestation (%) in 2010")+
+  theme(axis.title.x = element_blank()
+        , panel.background = element_blank()
+        , axis.line = element_line(colour = "black")
+        , legend.position = "none") -> desmat.front_2010
+
+dbcap1_rma %>% 
+  select(code_muni, def.stage_10, tx.desmat.perc_91, tx.desmat.perc_00, tx.desmat.perc_10) %>% 
+  mutate(mean.defRate = (tx.desmat.perc_91 + tx.desmat.perc_00 + tx.desmat.perc_10)/3) %>% 
+  glimpse %>% 
+  ggplot()+
+  geom_boxplot(aes(x = as.factor(def.stage_10), y = mean.defRate, fill = as.factor(def.stage_10)))+
+  scale_x_discrete(labels = c("Initial", "Intermediate", "Advanced"))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"))+
+  ylab("Mean def. rate (%)")+
+  xlab("Deforestation frontier (2010)")+
+  theme(panel.background = element_blank()
+        , axis.line = element_line(colour = "black")
+        , legend.position = "none") -> mean_defRate
+
+plot_grid(
+  defStage_map,
+  plot_grid(
+    desmat.front_2010,
+    mean_defRate,
+    nrow = 2,
+    axis = "lr",
+    labels = c("b", "c"),
+    label_y = c(1, 1.1),
+    label_x = c(-0.05,-0.05)
+  ),
+  rel_widths = c(2, 1),
+  labels = "a"
+) -> fig1
+
+read_state() -> br_states
+read_biomes() %>% 
+  filter(name_biome == "Caatinga") ->caat_shp
+
+ggplot()+
+  geom_sf(data = caat_shp$geom, color = "transparent", fill = "grey60")+
+  geom_sf(data = br_states$geom, fill = "transparent")+
+  theme_map() -> inset_map
+
+
+ggdraw()+
+  draw_plot(fig1)+
+  draw_plot(inset_map,
+            x = -0.03, y = 0.7, width = 0.30, height = 0.30)-> fig1_inset
+```
+
+<br/>
+
+##Repeated-measures ANOVA
+####In the next step we calculated a rm-ANOVA between groups and across all years. After we make the individual graphics (for each socioeconomic index) and grouped all graphics into a panel (Figure 2)
+
+```{r}
+#data prep----
+dbcap1_rma%>% 
+  select(code_muni, nvc.perc_91, nvc.perc_00, nvc.perc_10, def.stage_91,
+         def.stage_2000, def.stage_10, IDHM_E_1991, IDHM_E_2000, IDHM_E_2010,
+         IDHM_L_1991, IDHM_L_2000, IDHM_L_2010, IDHM_R_1991, IDHM_R_2000,
+         IDHM_R_2010, expov_1991, expov_2000, expov_2010, gini_1991, gini_2000,
+         gini_2010, u5mort_1991, u5mort_2000, U5mort_2010)%>% 
+  dplyr::rename(nvc.perc_1991 = nvc.perc_91,
+         nvc.perc_2000 = nvc.perc_00,
+         nvc.perc_2010 = nvc.perc_10,
+         def.stage_1991 = def.stage_91,
+         def.stage_2010 = def.stage_10,
+         u5mort_2010 = U5mort_2010)%>% 
+  pivot_longer(cols = -code_muni,
+               names_to = c(".value", "year"),
+               names_pattern = "(.+)_(.+)",) %>%
+  glimpse() -> pl_nvcs
+
+plF_nvcs<- pl_nvcs
+plF_nvcs$code_muni<- as.factor(plF_nvcs$code_muni)
+plF_nvcs$year<- as.factor(plF_nvcs$year)
+plF_nvcs$def.stage<- as.factor(plF_nvcs$def.stage)
+glimpse(plF_nvcs)
+
+##IDHM_E----
+ggplot(data = plF_nvcs, aes(x = year, y = IDHM_E, fill = def.stage)) +
+  geom_boxplot(aes(middle = mean(IDHM_E)))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
+                                                                            "Intermediate",
+                                                                            "Advanced"),
+                    name = "Deforestation frontier")+
+  labs(x = "Year", y = "HDI - Education")+
+  geom_signif(y_position = c(0.43, 0.43, 0.43, 0.58, 0.58, 0.58, 0.77, 0.77, 0.77), 
+              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
+              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
+              annotations = c("a","b","b", "c", "d", "d", "e", "e", "f"),
+              tip_length = 0)+
+  theme_classic(base_size = 14)+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank())-> rma_idhE
+
+lmer.idhE<- lmer(data = plF_nvcs, formula = IDHM_E ~ def.stage*year + (1 | code_muni))
+tab.idhE<- car::Anova(lmer.idhE, type = "II")
+summary(lmer.idhE)
+pw.idhE<- emmeans(lmer.idhE, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##IDHM_L####
+ggplot(data = plF_nvcs, aes(x = year, y = IDHM_L, fill = def.stage)) +
+  geom_boxplot(aes(middle = mean(IDHM_L)))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
+                                                                            "Intermediate",
+                                                                            "Advanced"),
+                    name = "Deforestation frontiers")+
+  labs(x = "Year", y = "HDI - Longevity")+
+  #scale_y_continuous(limits = c(0, 0.85))+
+  geom_signif(y_position = c(0.76, 0.76, 0.76, 0.83, 0.83, 0.83, 0.89, 0.89, 0.89), 
+              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
+              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
+              annotations = c("a","a","b", "c", "c", "c", "d", "d", "d"),
+              tip_length = 0)+
+  theme_classic(base_size = 14)+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank()) -> rma_idhL
+
+lmer.idhL<- lmer(data = plF_nvcs, formula = IDHM_L ~ def.stage*year + (1 | code_muni))
+tab.idhL<- car::Anova(lmer.idhL, type = "II")
+summary(lmer.idhL)
+pw.idhL<- emmeans(lmer.idhL, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##IDHM_R####
+ggplot(data = plF_nvcs, aes(x = year, y = IDHM_R, fill = def.stage)) +
+  geom_boxplot(aes(middle = mean(IDHM_R)))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
+                                                                            "Intermediate",
+                                                                            "Advanced"),
+                    name = "Deforestation frontier")+
+  labs(x = "Year", y = "HDI - Income")+
+  #scale_y_continuous(limits = c(0, 0.85))+
+  geom_signif(y_position = c(0.69, 0.69, 0.69, 0.74, 0.74, 0.74, 0.79, 0.79, 0.79), 
+              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
+              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
+              annotations = c("a","b","c", "d", "e", "de", "f", "f", "f"),
+              tip_length = 0)+
+  theme_classic(base_size = 14)+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank()) -> rma_idhR
+
+lmer.idhR<- lmer(data = plF_nvcs, formula = IDHM_R ~ def.stage*year + (1 | code_muni))
+tab.idhR<- car::Anova(lmer.idhR, type = "II")
+summary(lmer.idhR)
+pw.idhR<- emmeans(lmer.idhR, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##expov####
+ggplot(data = plF_nvcs, aes(x = year, y = expov, fill = def.stage)) +
+  geom_boxplot(aes(middle = mean(expov)))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
+                                                                            "Intermediate",
+                                                                            "Advanced"),
+                    name = "Deforestation frontier")+
+  labs(x = "Year", y = "Extreme poverty")+
+  #scale_y_continuous(limits = c(0, 0.85))+
+  geom_signif(y_position = c(96, 96, 96, 76, 76, 76, 51, 51, 51), 
+              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
+              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
+              annotations = c("a","b","c", "d", "e", "de", "f", "g", "fg"),
+              tip_length = 0)+
+  theme_classic(base_size = 14)-> rma_expov
+
+lmer.expov<- lmer(data = plF_nvcs, formula = expov ~ def.stage*year + (1 | code_muni))
+tab.expov<- car::Anova(lmer.expov, type = "II")
+summary(lmer.expov)
+pw.expov<- emmeans(lmer.expov, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##gini####
+ggplot(data = plF_nvcs, aes(x = year, y = gini, fill = def.stage)) +
+  geom_boxplot(aes(middle = mean(gini)))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
+                                                                            "Intermediate",
+                                                                            "Advanced"),
+                    name = "Deforestation frontier")+
+  labs(x = "Year", y = "Gini Index")+
+  geom_signif(y_position = c(0.94, 0.94, 0.94, 0.84, 0.84, 0.84, 0.81, 0.81, 0.81), 
+              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
+              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
+              annotations = c("a","a","a", "b", "c", "bc", "a", "d", "d"),
+              tip_length = 0)+
+  theme_classic(base_size = 14) -> rma_gini
+
+lmer.gini<- lmer(data = plF_nvcs, formula = gini ~ def.stage*year + (1 | code_muni))
+tab.gini<- car::Anova(lmer.gini, type = "II")
+summary(lmer.gini)
+pw.gini<- emmeans(lmer.gini, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##u5mort####
+ggplot(data = plF_nvcs, aes(x = year, y = u5mort, fill = def.stage)) +
+  geom_boxplot(aes(middle = mean(u5mort)))+
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
+                                                                            "Intermediate",
+                                                                            "Advanced"),
+                    name = "Deforestation frontier")+
+  labs(x = "Year", y = "Under five mortality")+
+  geom_signif(y_position = c(155, 155, 155, 110, 110, 110, 55, 55,55), 
+              xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
+              xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
+              annotations = c("a","a","b", "c", "c", "c", "d", "d", "d"),
+              tip_length = 0)+
+  theme_classic(base_size = 14) -> rma_u5mort
+
+lmer.u5mort<- lmer(data = plF_nvcs, formula = u5mort ~ def.stage*year + (1 | code_muni))
+tab.u5mort<- car::Anova(lmer.u5mort, type = "II")
+summary(lmer.u5mort)
+pw.u5mort<- emmeans(lmer.u5mort, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+#Figure 2####
+ggarrange(rma_idhE, rma_idhL, rma_idhR, rma_expov, rma_gini, rma_u5mort,
+          labels = c("a", "b", "c", "d", "e", "f"),
+          common.legend = T,
+          legend = "bottom"
+          )->fig2
+```
+
+<br/>
+
+##Next we will do the CBPS analysis
+```{r}
+##Propensity scores for 2010 model----
+dbcap1_cbps %>% 
+  mutate(defPerc_2010 = 100 - nvcPerc_2010) %>% 
+  glimpse()-> dbcap1_cbps
+
+### Create CBPS----
+modelnvc<- CBPS(data = dbcap1_cbps[-c(38,616),], 
+              defPerc_2010 ~      
+              area_mun +
+              p_agro_10 +
+              perc_urb_10+
+              prodAss_06+
+              nascProt_06+
+              riosProt_06+
+              irrigPerc_06+
+              rain_var+
+              percProp_S+
+              pibAgroPC_2010+
+              pibIndPC_2010+
+              pibServpubPC_2010+
+              carvVeg_10+
+              lenha_10,
+              method = "exact",
+              ATT=0
+              )
+summary(modelnvc)
+
+### Evaluate CBPS ####
+bal.covar<- balance(modelnvc)
+bal.covar<- data.frame(original=bal.covar$unweighted, 
+                                weighted=bal.covar$balanced)
+names(bal.covar)<- c("Pearson r unweighted", "Pearson r IPW")
+summary(bal.covar)
+boxplot(bal.covar)
+
+##Average Treatment Effect####
+set.seed(123)
+###outcome IDHM_E----
+model.idhmE_2010<- glm(data = dbcap1_cbps[-c(38,616),], 
+                       IDHM_E_2010 ~
+                         nvcPerc_2010 +
+                         I(nvcPerc_2010^2),
+                       weights = modelnvc$weights
+)
+summary(model.idhmE_2010)
+
+lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(IDHM_E_2010 ~
+           nvcPerc_2010 +
+           I(nvcPerc_2010^2)+
+           area_mun +
+           #p_agro_10 +
+           perc_urb_10+
+           #prodAss_06+
+           #nascProt_06+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           #pibAgroPC_2010+
+           #pibIndPC_2010+
+           pibServpubPC_2010,
+         #carvVeg_10+
+         #lenha_10,
+         data = data[-c(38,616),],
+         listw = mat_dist_list, 
+         type = "sac")->m.idhmE_spat
+summary(m.idhmE_spat)
+summary(impacts(m.idhmE_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)->summ.sac_idhmE
+
+errorsarlm(IDHM_E_2010 ~
+             nvcPerc_2010 +
+             I(nvcPerc_2010^2)+
+             area_mun +
+             #p_agro_10 +
+             perc_urb_10+
+             #prodAss_06+
+             #nascProt_06+
+             riosProt_06+
+             irrigPerc_06+
+             rain_var+
+             percProp_S+
+             #pibAgroPC_2010+
+             #pibIndPC_2010+
+             pibServpubPC_2010,
+           #carvVeg_10+
+           #lenha_10,
+           data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmE_spat2
+summary(m.idhmE_spat)
 ```
 
