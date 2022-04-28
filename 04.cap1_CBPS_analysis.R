@@ -299,7 +299,7 @@ errorsarlm(IDHM_E_2010 ~
            #carvVeg_10+
            #lenha_10,
            data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmE_spat2
-summary(m.idhmE_spat)
+summary(m.idhmE_spat2)
 
 #outcome gini####
 model.gini_2010<- glm(data = data[-c(38,616),], 

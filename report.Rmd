@@ -24,6 +24,8 @@ library(lme4)
 library(emmeans)
 library(ggpubr)
 library(CBPS)
+library(spdep)
+library(spatialreg)
 ```
 
 <br/>
@@ -48,7 +50,7 @@ read_municipality(simplified = F) ->mun_br #download polygons of brazilian munic
 ###Map of Caatinga municipalities categorized in three deforestation frontiers and their respective total deforested area and rates of deforestation
 ```{r}
 dbcap1_rma%>%
-  select(code_muni, nvc.perc_10, def.stage_10)%>%
+  dplyr::select(code_muni, nvc.perc_10, def.stage_10)%>%
   left_join(y = mun_br, by = "code_muni") -> dbcap1_rma.map
   
 ggplot()+  
@@ -70,7 +72,7 @@ ggplot()+
         legend.text = element_text(size = 10))-> defStage_map
 
 dbcap1_rma %>% 
-  select(code_muni, nvc.perc_10, def.stage_10) %>% 
+  dplyr::select(code_muni, nvc.perc_10, def.stage_10) %>% 
   glimpse %>% 
   ggplot()+
   geom_boxplot(aes(x = as.factor(def.stage_10), y = 100 - nvc.perc_10, fill = as.factor(def.stage_10)))+
@@ -83,7 +85,7 @@ dbcap1_rma %>%
         , legend.position = "none") -> desmat.front_2010
 
 dbcap1_rma %>% 
-  select(code_muni, def.stage_10, tx.desmat.perc_91, tx.desmat.perc_00, tx.desmat.perc_10) %>% 
+  dplyr::select(code_muni, def.stage_10, tx.desmat.perc_91, tx.desmat.perc_00, tx.desmat.perc_10) %>% 
   mutate(mean.defRate = (tx.desmat.perc_91 + tx.desmat.perc_00 + tx.desmat.perc_10)/3) %>% 
   glimpse %>% 
   ggplot()+
@@ -135,7 +137,7 @@ ggdraw()+
 ```{r}
 #data prep----
 dbcap1_rma%>% 
-  select(code_muni, nvc.perc_91, nvc.perc_00, nvc.perc_10, def.stage_91,
+  dplyr::select(code_muni, nvc.perc_91, nvc.perc_00, nvc.perc_10, def.stage_91,
          def.stage_2000, def.stage_10, IDHM_E_1991, IDHM_E_2000, IDHM_E_2010,
          IDHM_L_1991, IDHM_L_2000, IDHM_L_2010, IDHM_R_1991, IDHM_R_2000,
          IDHM_R_2010, expov_1991, expov_2000, expov_2010, gini_1991, gini_2000,
@@ -290,43 +292,52 @@ pw.u5mort<- emmeans(lmer.u5mort, pairwise ~ def.stage*year, pbkrtest.limit = 362
 ggarrange(rma_idhE, rma_idhL, rma_idhR, rma_expov, rma_gini, rma_u5mort,
           labels = c("a", "b", "c", "d", "e", "f"),
           common.legend = T,
-          legend = "bottom"
-          )->fig2
+          legend = "bottom")
 ```
 
 <br/>
 
-##Next we will do the CBPS analysis
+##Next we will do the CBPS analysis and the SARAR models as robustnesse test
+
 ```{r}
 ##Propensity scores for 2010 model----
+### some more data----
 dbcap1_cbps %>% 
   mutate(defPerc_2010 = 100 - nvcPerc_2010) %>% 
   glimpse()-> dbcap1_cbps
 
+dbcap1_cbps%>%
+  left_join(y = mun_br, by = "code_muni") -> dbcap1_cbps.map
+
+poly2nb(st_as_sf(dbcap1_cbps.map[-c(36, 143, 600, 786),]), queen=TRUE)-> mat_dist #Had to remove 4 municipalities with no neighbours
+
+nb2listw(mat_dist)->mat_dist_list
+
 ### Create CBPS----
-modelnvc<- CBPS(data = dbcap1_cbps[-c(38,616),], 
-              defPerc_2010 ~      
-              area_mun +
-              p_agro_10 +
-              perc_urb_10+
-              prodAss_06+
-              nascProt_06+
-              riosProt_06+
-              irrigPerc_06+
-              rain_var+
-              percProp_S+
-              pibAgroPC_2010+
-              pibIndPC_2010+
-              pibServpubPC_2010+
-              carvVeg_10+
-              lenha_10,
-              method = "exact",
-              ATT=0
-              )
-summary(modelnvc)
+CBPS(
+  data = dbcap1_cbps[-c(36, 143, 600, 786),],
+  defPerc_2010 ~
+    area_mun +
+    p_agro_10 +
+    perc_urb_10 +
+    prodAss_06 +
+    nascProt_06 +
+    riosProt_06 +
+    irrigPerc_06 +
+    rain_var +
+    percProp_S +
+    pibAgroPC_2010 +
+    pibIndPC_2010 +
+    pibServpubPC_2010 +
+    carvVeg_10 +
+    lenha_10,
+  method = "exact",
+  ATT = 0
+) -> modeldef
+summary(modeldef)
 
 ### Evaluate CBPS ####
-bal.covar<- balance(modelnvc)
+bal.covar<- balance(modeldef)
 bal.covar<- data.frame(original=bal.covar$unweighted, 
                                 weighted=bal.covar$balanced)
 names(bal.covar)<- c("Pearson r unweighted", "Pearson r IPW")
@@ -336,60 +347,250 @@ boxplot(bal.covar)
 ##Average Treatment Effect####
 set.seed(123)
 ###outcome IDHM_E----
-model.idhmE_2010<- glm(data = dbcap1_cbps[-c(38,616),], 
+model.idhmE_2010<- glm(data = dbcap1_cbps[-c(36, 143, 600, 786),], 
                        IDHM_E_2010 ~
-                         nvcPerc_2010 +
-                         I(nvcPerc_2010^2),
-                       weights = modelnvc$weights
+                         defPerc_2010 +
+                         I(defPerc_2010^2),
+                       weights = modeldef$weights
 )
 summary(model.idhmE_2010)
 
-lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")
+lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided") #confirm the spatial autocorrelation. So we need to test the CBPS model for sensivity to this. We'll use a SARAR (or SAC) models
 
 sacsarlm(IDHM_E_2010 ~
-           nvcPerc_2010 +
-           I(nvcPerc_2010^2)+
+           defPerc_2010 +
+           I(defPerc_2010^2)+
            area_mun +
-           #p_agro_10 +
            perc_urb_10+
-           #prodAss_06+
-           #nascProt_06+
            riosProt_06+
            irrigPerc_06+
            rain_var+
            percProp_S+
-           #pibAgroPC_2010+
-           #pibIndPC_2010+
            pibServpubPC_2010,
-         #carvVeg_10+
-         #lenha_10,
-         data = data[-c(38,616),],
+         data = dbcap1_cbps[-c(36, 143, 600, 786),],
          listw = mat_dist_list, 
          type = "sac")->m.idhmE_spat
 summary(m.idhmE_spat)
 summary(impacts(m.idhmE_spat,
                 listw = mat_dist_list,
                 R = 500),
-        zstats = TRUE)->summ.sac_idhmE
+        zstats = TRUE)
 
-errorsarlm(IDHM_E_2010 ~
-             nvcPerc_2010 +
-             I(nvcPerc_2010^2)+
-             area_mun +
-             #p_agro_10 +
-             perc_urb_10+
-             #prodAss_06+
-             #nascProt_06+
-             riosProt_06+
-             irrigPerc_06+
-             rain_var+
-             percProp_S+
-             #pibAgroPC_2010+
-             #pibIndPC_2010+
-             pibServpubPC_2010,
-           #carvVeg_10+
-           #lenha_10,
-           data= data[-c(38,616),], listw = mat_dist_list, etype="emixed")->m.idhmE_spat2
-summary(m.idhmE_spat)
+###outcome IDHM_L----
+model.idhmL_2010<- glm(data = dbcap1_cbps[-c(36, 143, 600, 786),], 
+                        IDHM_L_2010 ~
+                          defPerc_2010 +
+                          I(defPerc_2010^2),
+                        weights = modeldef$weights
+)
+summary(model.idhmL_2010)
+
+lm.morantest(model.idhmL_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(IDHM_L_2010 ~
+           defPerc_2010 +
+           I(defPerc_2010^2)+
+           area_mun +
+           perc_urb_10+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           pibServpubPC_2010,
+         data = dbcap1_cbps[-c(36, 143, 600, 786),],
+         listw = mat_dist_list, 
+         type = "sac")->m.idhmL_spat
+summary(m.idhmL_spat)
+summary(impacts(m.idhmL_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)
+
+###outcome IDHM_R----
+model.idhmR_2010<- glm(data = dbcap1_cbps[-c(36, 143, 600, 786),], 
+                    IDHM_R_2010 ~
+                      defPerc_2010 +
+                      I(defPerc_2010^2),
+                    weights = modeldef$weights
+)
+summary(model.idhmR_2010)
+
+lm.morantest(model.idhmR_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(IDHM_R_2010 ~
+           defPerc_2010 +
+           I(defPerc_2010^2)+
+           area_mun +
+           perc_urb_10+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           pibServpubPC_2010,
+       data = dbcap1_cbps[-c(36, 143, 600, 786),],
+       listw = mat_dist_list, 
+         type = "sac")->m.idhmR_spat
+summary(m.idhmR_spat)
+summary(impacts(m.idhmR_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)
+
+###outcome expov----
+
+model.expov10<- glm(data = dbcap1_cbps[-c(36, 143, 600, 786),], 
+                    expov_2010 ~
+                      defPerc_2010 +
+                      I(defPerc_2010^2),
+                    weights = modeldef$weights
+                    )
+summary(model.expov10)
+
+lm.morantest(model.expov10, mat_dist_list, alternative = "two.sided")
+
+sacsarlm(expov_2010 ~
+           defPerc_2010 +
+           I(defPerc_2010^2)+
+               area_mun +
+               perc_urb_10+
+               riosProt_06+
+               irrigPerc_06+
+               rain_var+
+               percProp_S+
+               pibServpubPC_2010,
+         data = dbcap1_cbps[-c(36, 143, 600, 786),],
+         listw = mat_dist_list, 
+         type = "sac")->m.expov_spat
+summary(m.expov_spat)
+summary(impacts(m.expov_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)
+
+#outcome gini----
+
+model.gini_2010<- glm(data = dbcap1_cbps[-c(36, 143, 600, 786),], 
+                      gini_2010 ~
+                        defPerc_2010 +
+                        I(defPerc_2010^2),
+                      weights = modeldef$weights
+)
+summary(model.gini_2010)
+
+lm.morantest(model.gini_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(gini_2010 ~
+           defPerc_2010 +
+           I(defPerc_2010^2)+
+           area_mun +
+           perc_urb_10+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           pibServpubPC_2010,
+         data = dbcap1_cbps[-c(36, 143, 600, 786),],
+         listw = mat_dist_list, 
+         type = "sac")->m.gini_spat
+summary(m.gini_spat)
+summary(impacts(m.gini_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)
+
+#outcome u5mort####
+model.u5mort_2010<- glm(data = dbcap1_cbps[-c(36, 143, 600, 786),], 
+                      u5mort_2010 ~
+                        defPerc_2010 +
+                        I(defPerc_2010^2),
+                      weights = modeldef$weights
+)
+
+summary(model.u5mort_2010)
+
+lm.morantest(model.u5mort_2010,mat_dist_list, alternative = "two.sided")
+
+sacsarlm(u5mort_2010 ~
+           defPerc_2010 +
+           I(defPerc_2010^2)+
+           area_mun +
+           perc_urb_10+
+           riosProt_06+
+           irrigPerc_06+
+           rain_var+
+           percProp_S+
+           pibServpubPC_2010,
+         data = dbcap1_cbps[-c(36, 143, 600, 786),],
+         listw = mat_dist_list, 
+         type = "sac")->m.u5mort_spat
+summary(m.u5mort_spat)
+summary(impacts(m.u5mort_spat,
+                listw = mat_dist_list,
+                R = 500),
+        zstats = TRUE)
+```
+
+<br/>
+
+##Now we will make the graphics of total deforestation area against all socioeconomic index and the final panel
+
+```{r}
+#Figures ####
+#IDHM_E
+ggplot(data = dbcap1_cbps[-c(36, 143, 600, 786),], aes(x = defPerc_2010, y = IDHM_E_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Education")+
+  theme_classic()+
+  theme(legend.position = "none"
+        ,axis.title.x = element_blank()) ->fig.IDHM_E_10
+
+#IDHM_L
+ggplot(data = dbcap1_cbps[-c(36, 143, 600, 786),], aes(x = defPerc_2010, y = IDHM_L_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Longevity")+
+  theme_classic()+
+  theme(legend.position = "none",axis.title.x = element_blank())->fig.IDHM_L_10
+
+#IDHM_R
+ggplot(data = dbcap1_cbps[-c(36, 143, 600, 786),], aes(x = defPerc_2010, y = IDHM_R_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Income")+
+  theme_classic()+
+  theme(legend.position = "none"
+        ,axis.title.x = element_blank())->fig.IDHM_R_10
+
+#Extreme poverty
+ggplot(data = dbcap1_cbps[-c(36, 143, 600, 786),], aes(x = defPerc_2010, y = expov_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  xlab("Deforestation (%)")+
+  ylab("Extreme Poverty")+
+  theme_classic()+
+  theme(legend.position = "none")->fig.expov_10
+
+#gini
+ggplot(data = dbcap1_cbps[-c(36, 143, 600, 786),], aes(x = defPerc_2010, y = gini_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  xlab("Deforestation (%)")+
+  ylab("Gini Index")+
+  theme_classic()+
+  theme(legend.position = "none")->fig.gini_10
+
+#u5mort
+ggplot(data = dbcap1_cbps[-c(36, 143, 600, 786),], aes(x = defPerc_2010, y = u5mort_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  xlab("Deforestation (%)")+
+  ylab("Under five mortality")+
+  theme_classic()+
+  theme(legend.position = "none")->fig.u5mort_10
+
+#3figure 3####
+ggarrange(fig.IDHM_E_10, fig.IDHM_L_10, fig.IDHM_R_10, fig.expov_10, fig.gini_10, fig.u5mort_10,
+          labels = c("a","b", "c", "d", "e", "f"))-> fig3
 ```
 
