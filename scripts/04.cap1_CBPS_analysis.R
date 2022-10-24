@@ -23,8 +23,10 @@ data$code_state<- as.factor(data$code_state)
 hist(data$nvcPerc_2010)
 glimpse(data)
 #ggpairs(data[,12:29])
-as.data.frame(scale(data[,12:31]))-> data[,12:31]
+as.data.frame(scale(data[,12:29]))-> data[,12:29]
 
+data %>% 
+  mutate(defPerc_2010 = ) #testar modelos com desmatamento ao invés de nvc
 #data analysis####
 ##Propensity scores for 2010 model
 ### Create CBPS ####
