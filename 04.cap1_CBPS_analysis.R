@@ -3,8 +3,6 @@
 #Analysis made following Walter Leite's tutorial at http://www.practicalpropensityscore.com/continuous.html
 #and Christian Fong, Chad Hazlett, and Kosuke Imai, 2018 - .
 
-setwd("/home/lucas/Documents/Doutorado/tese/cap1/")
-
 #Libraries
 library(readxl)
 library(dplyr)
@@ -14,16 +12,17 @@ library(sf)
 library(spdep)
 library(spatialreg)
 library(ggplot2)
+library(here)
 
 
-read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/db2cap1_cbps_clean.xlsx")-> data
+read_xlsx(here("data/db2cap1_cbps_clean.xlsx"))-> data
 
 #data exploration
 glimpse(data)
 data$code_state<- as.factor(data$code_state)
 hist(data$nvcPerc_2010)
 glimpse(data)
-ggpairs(data[,12:29])
+#ggpairs(data[,12:29])
 as.data.frame(scale(data[,12:31]))-> data[,12:31]
 
 #data analysis####
@@ -33,7 +32,6 @@ modelnvc<- CBPS(data = data[-c(38,616),], #remove varibales with correlation hig
               nvcPerc_2010 ~      
               area_mun +
               p_agro_10 +
-              #perc_rur_10 +
               perc_urb_10+
               prodAss_06+
               nascProt_06+
@@ -41,14 +39,11 @@ modelnvc<- CBPS(data = data[-c(38,616),], #remove varibales with correlation hig
               irrigPerc_06+
               rain_var+
               percProp_S+
-              #percProp_M+
-              #percProp_L+
               pibAgroPC_2010+
               pibIndPC_2010+
               pibServpubPC_2010+
               carvVeg_10+
               lenha_10,
-              #wood_10,
               method = "exact",
               ATT=0
               )
