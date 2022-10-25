@@ -26,12 +26,14 @@ glimpse(data)
 as.data.frame(scale(data[,12:29]))-> data[,12:29]
 
 data %>% 
-  mutate(defPerc_2010 = ) #testar modelos com desmatamento ao invés de nvc
+  mutate(defPerc_2010 = 100-nvcPerc_2010) %>% #testar modelos com desmatamento ao invés de nvc
+  glimpse() -> data
 #data analysis####
 ##Propensity scores for 2010 model
 ### Create CBPS ####
-modelnvc<- CBPS(data = data[-c(38,616),], #remove varibales with correlation higher than 0.4 in both directions
-              nvcPerc_2010 ~      
+
+CBPS(data = data[-c(38,616),], #remove varibales with correlation higher than 0.4 in both directions
+              defPerc_2010 ~      
               area_mun +
               p_agro_10 +
               perc_urb_10+
@@ -48,25 +50,17 @@ modelnvc<- CBPS(data = data[-c(38,616),], #remove varibales with correlation hig
               lenha_10,
               method = "exact",
               ATT=0
-              )
-summary(modelnvc)
+              ) -> modeldef
+summary(modeldef)
 
 ### Evaluate CBPS ####
-bal.covar<- balance(modelnvc)
+bal.covar<- balance(modeldef)
 bal.covar<- data.frame(original=bal.covar$unweighted, 
                                 weighted=bal.covar$balanced)
-names(bal.covar)<- c("Pearson r unweighted", "Pearson r IPW")
+names(bal.covar)<- c("Unweighted", "CBPS weighted")
 summary(bal.covar)
 boxplot(bal.covar)
 
-### check spatial correlation in CBPS stage ####
-read_sf("/home/lucas/Documentos/Doutorado/Dados/muncat_2020.shp")->mun_cat
-data$code_muni<-as.character(data$code_muni)
-inner_join(mun_cat, data, by = c("CD_MUN" = "code_muni"))-> mun_cat_data
-poly2nb(mun_cat_data[-c(38,616),], queen=TRUE)-> mat_dist2
-nb2listw(mat_dist2)->mat_dist_list
-
-#não consegui encontrar uma forma de testar o resíduos do CBPS
 
 ###Average Treatment Effect####
 ####Fong et al, 2018 method
