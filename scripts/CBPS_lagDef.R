@@ -18,20 +18,20 @@ read_xlsx(path = "data/db3cap1_cbps_clean.xlsx") -> data
 #   filter(level_1 == "1 - Forest") %>%
 #   rename(code_muni = territory_id,
 #          nvcHa_2005 = '2005',
-#          nvcHa_2008 = '2008') %>%
+#          nvcHa_2009 = '2009') %>%
 #   group_by(code_muni) %>%
 #   summarise(code_muni = code_muni,
 #             nvcHa_2005 = sum(nvcHa_2005),
-#             nvcHa_2008 = sum(nvcHa_2008),
+#             nvcHa_2009 = sum(nvcHa_2009),
 #             .groups = "drop") %>%
 #   distinct() %>%
 #   right_join(x = ., y = data, by = "code_muni") %>%
 #   mutate(nvcPerc_2005 = (nvcHa_2005*100)/area_mun,
-#          nvcPerc_2008 = (nvcHa_2008*100)/area_mun,
+#          nvcPerc_2009 = (nvcHa_2009*100)/area_mun,
 #          defPerc_2005 = 100 - nvcPerc_2005,
-#          defPerc_2008 = 100 - nvcPerc_2008) %>%
+#          defPerc_2009 = 100 - nvcPerc_2009) %>%
 #   glimpse -> data2
-#writexl::write_xlsx(x= data2, path = "data/db3cap1_cbps_clean.xlsx")
+# writexl::write_xlsx(x= data2, path = "data/db3cap1_cbps_clean.xlsx")
 
 data %>% 
   mutate(defPerc_2010 = 100-nvcPerc_2010) %>% 
@@ -136,58 +136,58 @@ model.u5mort_2005<- glm(data = data[-142,],
 summary(model.u5mort_2005)
 
 
-##deforestation data 2008----
+##deforestation data 2009----
 ####outcome IDHM_E####
-model.idhmE_2008<- glm(data = data[-142,], 
+model.idhmE_2009<- glm(data = data[-142,], 
                        IDHM_E_2010 ~
-                         defPerc_2008 +
-                         I(defPerc_2008^2),
+                         defPerc_2009 +
+                         I(defPerc_2009^2),
                        weights = modeldef$weights
 )
-summary(model.idhmE_2008)
+summary(model.idhmE_2009)
 
 ####outcome IDHM_L####
-model.idhmL_2008<- glm(data = data[-142,], 
+model.idhmL_2009<- glm(data = data[-142,], 
                        IDHM_L_2010 ~
-                         defPerc_2008 +
-                         I(defPerc_2008^2),
+                         defPerc_2009 +
+                         I(defPerc_2009^2),
                        weights = modeldef$weights
 )
-summary(model.idhmL_2008)
+summary(model.idhmL_2009)
 
 ####outcome IDHM_R####
-model.idhmR_2008<- glm(data = data[-142,], 
+model.idhmR_2009<- glm(data = data[-142,], 
                        IDHM_R_2010 ~
-                         defPerc_2008 +
-                         I(defPerc_2008^2),
+                         defPerc_2009 +
+                         I(defPerc_2009^2),
                        weights = modeldef$weights
 )
-summary(model.idhmR_2008)
+summary(model.idhmR_2009)
 
 ####outcome expov----
 glm(data = data[-142,], 
     expov_2010 ~
-      defPerc_2008 +
-      I(defPerc_2008^2),
+      defPerc_2009 +
+      I(defPerc_2009^2),
     weights = modeldef$weights
-) -> model.expov08
-summary(model.expov08)
+) -> model.expov09
+summary(model.expov09)
 
 ####outcome gini####
-model.gini_2008<- glm(data = data[-142,], 
+model.gini_2009<- glm(data = data[-142,], 
                       gini_2010 ~
-                        defPerc_2008 +
-                        I(defPerc_2008^2),
+                        defPerc_2009 +
+                        I(defPerc_2009^2),
                       weights = modeldef$weights
 )
-summary(model.gini_2008)
+summary(model.gini_2009)
 
 
 ####outcome u5mort####
-model.u5mort_2008<- glm(data = data[-142,], 
+model.u5mort_2009<- glm(data = data[-142,], 
                         u5mort_2010 ~
-                          defPerc_2008 +
-                          I(defPerc_2008^2),
+                          defPerc_2009 +
+                          I(defPerc_2009^2),
                         weights = modeldef$weights
 )
-summary(model.u5mort_2008)
+summary(model.u5mort_2009)
