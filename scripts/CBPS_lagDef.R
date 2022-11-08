@@ -7,6 +7,8 @@ library(dplyr)
 library(CBPS)
 library(geobr)
 library(spdep)
+library(stringr)
+library(performance)
 
 #data----
 # read_xlsx(path = "/home/alenc/Documents/Doutorado/Dados/mapb5_cobertura_selec.xlsx") ->mapb5_cover
@@ -14,28 +16,24 @@ library(spdep)
 read_xlsx(path = "data/db3cap1_cbps_clean.xlsx") -> data
 
 ##data manipulation----
-# mapb5_cover %>%
+# mapb5_cover %>% 
 #   filter(level_1 == "1 - Forest") %>%
-#   rename(code_muni = territory_id,
-#          nvcHa_2005 = '2005',
-#          nvcHa_2009 = '2009') %>%
+#   rename(code_muni = territory_id) %>%
 #   group_by(code_muni) %>%
-#   summarise(code_muni = code_muni,
-#             nvcHa_2005 = sum(nvcHa_2005),
-#             nvcHa_2009 = sum(nvcHa_2009),
-#             .groups = "drop") %>%
-#   distinct() %>%
+#   summarise(across(.cols = `2001`:`2009`,
+#                    .fns = sum,
+#                    .names = "nvcHa_{.col}")) %>%
 #   right_join(x = ., y = data, by = "code_muni") %>%
-#   mutate(nvcPerc_2005 = (nvcHa_2005*100)/area_mun,
-#          nvcPerc_2009 = (nvcHa_2009*100)/area_mun,
-#          defPerc_2005 = 100 - nvcPerc_2005,
-#          defPerc_2009 = 100 - nvcPerc_2009) %>%
+#   mutate(across(.cols = starts_with("nvcHa"),
+#                  .fns = ~ . *100)/area_mun) %>% 
+#   mutate(across(.cols = starts_with("nvcHa"),
+#                 .fns = ~100 - . )) %>% 
+#   rename_with(.fn = ~ str_replace(string = . ,
+#               pattern = "nvcHa",
+#               replacement = "defPerc")) %>% 
 #   glimpse -> data2
 # writexl::write_xlsx(x= data2, path = "data/db3cap1_cbps_clean.xlsx")
 
-data %>% 
-  mutate(defPerc_2010 = 100-nvcPerc_2010) %>% 
-  glimpse() -> data
 #Analysis----
 ##deforestation data 2005----
 data %>% #removing empty neighbours for spatial analysis
@@ -81,113 +79,79 @@ boxplot(bal.covar)
 ###Average Treatment Effect----
 ####Fong et al, 2018 method
 ####outcome IDHM_E####
-model.idhmE_2005<- glm(data = data[-142,], 
-                       IDHM_E_2010 ~
-                         defPerc_2005 +
-                         I(defPerc_2005^2),
-                       weights = modeldef$weights
-)
-summary(model.idhmE_2005)
+
+glm_lag_IDHE <- function(i){
+  glm(data = data[-142,], 
+      IDHM_E_2010 ~
+        i + I(i ^ 2),
+      weights = modeldef$weights)} 
+
+lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+       FUN = glm_lag_IDHE)-> l_lag_idhE
+compare_performance(l_lag_idhE, metrics = "common",rank = T) -> compare_lag_idhE
+
 
 ####outcome IDHM_L####
-model.idhmL_2005<- glm(data = data[-142,], 
-                       IDHM_L_2010 ~
-                         defPerc_2005 +
-                         I(defPerc_2005^2),
-                       weights = modeldef$weights
-)
-summary(model.idhmL_2005)
+glm_lag_IDHL <- function(i){
+  glm(data = data[-142,], 
+      IDHM_L_2010 ~
+        i + I(i ^ 2),
+      weights = modeldef$weights)} 
+
+lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+       FUN = glm_lag_IDHL)-> l_lag_idhL
+compare_performance(l_lag_idhL, metrics = "common",rank = T) -> compare_lag_idhL
 
 ####outcome IDHM_R####
-model.idhmR_2005<- glm(data = data[-142,], 
-                       IDHM_R_2010 ~
-                         defPerc_2005 +
-                         I(defPerc_2005^2),
-                       weights = modeldef$weights
-)
-summary(model.idhmR_2005)
+glm_lag_IDHR <- function(i){
+  glm(data = data[-142,], 
+      IDHM_R_2010 ~
+        i + I(i ^ 2),
+      weights = modeldef$weights)} 
+
+lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+       FUN = glm_lag_IDHR)-> l_lag_idhR
+compare_performance(l_lag_idhR, metrics = "common",rank = T) -> compare_lag_idhR
 
 ####outcome expov----
-glm(data = data[-142,], 
-    expov_2010 ~
-      defPerc_2005 +
-      I(defPerc_2005^2),
-    weights = modeldef$weights
-) -> model.expov05
-summary(model.expov05)
+glm_lag_expov <- function(i){
+  glm(data = data[-142,], 
+      expov_2010 ~
+        i + I(i ^ 2),
+      weights = modeldef$weights)} 
+
+lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+       FUN = glm_lag_expov)-> l_lag_expov
+compare_performance(l_lag_expov, metrics = "common",rank = T) -> compare_lag_expov
 
 ####outcome gini####
-model.gini_2005<- glm(data = data[-142,], 
-                      gini_2010 ~
-                        defPerc_2005 +
-                        I(defPerc_2005^2),
-                      weights = modeldef$weights
-)
-summary(model.gini_2005)
+glm_lag_gini <- function(i){
+  glm(data = data[-142,], 
+      gini_2010 ~
+        i + I(i ^ 2),
+      weights = modeldef$weights)} 
+
+lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+       FUN = glm_lag_gini)-> l_lag_gini
+compare_performance(l_lag_gini, metrics = "common",rank = T) -> compare_lag_gini
+
 
 
 ####outcome u5mort####
-model.u5mort_2005<- glm(data = data[-142,], 
-                        u5mort_2010 ~
-                          defPerc_2005 +
-                          I(defPerc_2005^2),
-                        weights = modeldef$weights
-)
-summary(model.u5mort_2005)
+glm_lag_u5mort <- function(i){
+  glm(data = data[-142,], 
+      u5mort_2010 ~
+        i + I(i ^ 2),
+      weights = modeldef$weights)} 
 
+lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+       FUN = glm_lag_u5mort)-> l_lag_u5mort
+compare_performance(l_lag_u5mort, metrics = "common",rank = T) -> compare_lag_u5mort
 
-##deforestation data 2009----
-####outcome IDHM_E####
-model.idhmE_2009<- glm(data = data[-142,], 
-                       IDHM_E_2010 ~
-                         defPerc_2009 +
-                         I(defPerc_2009^2),
-                       weights = modeldef$weights
-)
-summary(model.idhmE_2009)
-
-####outcome IDHM_L####
-model.idhmL_2009<- glm(data = data[-142,], 
-                       IDHM_L_2010 ~
-                         defPerc_2009 +
-                         I(defPerc_2009^2),
-                       weights = modeldef$weights
-)
-summary(model.idhmL_2009)
-
-####outcome IDHM_R####
-model.idhmR_2009<- glm(data = data[-142,], 
-                       IDHM_R_2010 ~
-                         defPerc_2009 +
-                         I(defPerc_2009^2),
-                       weights = modeldef$weights
-)
-summary(model.idhmR_2009)
-
-####outcome expov----
-glm(data = data[-142,], 
-    expov_2010 ~
-      defPerc_2009 +
-      I(defPerc_2009^2),
-    weights = modeldef$weights
-) -> model.expov09
-summary(model.expov09)
-
-####outcome gini####
-model.gini_2009<- glm(data = data[-142,], 
-                      gini_2010 ~
-                        defPerc_2009 +
-                        I(defPerc_2009^2),
-                      weights = modeldef$weights
-)
-summary(model.gini_2009)
-
-
-####outcome u5mort####
-model.u5mort_2009<- glm(data = data[-142,], 
-                        u5mort_2010 ~
-                          defPerc_2009 +
-                          I(defPerc_2009^2),
-                        weights = modeldef$weights
-)
-summary(model.u5mort_2009)
+#export----
+write.table(x = compare_lag_idhE, file = "data/comp_lag_idhE.csv", sep = "|", dec = ".")
+write.table(x = compare_lag_idhL, file = "data/comp_lag_idhL.csv", sep = "|", dec = ".")
+write.table(x = compare_lag_idhR, file = "data/comp_lag_idhR.csv", sep = "|", dec = ".")
+write.table(x = compare_lag_expov, file = "data/comp_lag_expov.csv", sep = "|", dec = ".")
+write.table(x = compare_lag_gini, file = "data/comp_lag_gini.csv", sep = "|", dec = ".")
+write.table(x = compare_lag_u5mort, file = "data/comp_lag_u5mort.csv", sep = "|", dec = ".")
