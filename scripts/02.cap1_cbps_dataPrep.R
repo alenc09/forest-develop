@@ -8,6 +8,7 @@ library(tidyr)
 library(writexl)
 library(maptools)
 
+
 #Data preparation####
 
 dbtese_17<- read_xlsx("/home/lucas/Documents/Doutorado/tese/dbtese_17.xlsx")

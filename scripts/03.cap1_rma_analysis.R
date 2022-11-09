@@ -2,7 +2,6 @@
 
 #library####
 library(readxl)
-library(ClustGeo)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -14,7 +13,7 @@ library(ggsignif)
 read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/dbcap1_rma.xlsx")->dbcap1_rma
 
 #Analysis####
-##frontier 1991 - classifying by clustgeo####
+##frontier 1991 - classifying by grouping####
 dbcap1_rma$def.stage_91<- 
   if_else(condition = dbcap1_rma$nvc.perc_91 < 100 & dbcap1_rma$nvc.perc_91 >66 ,
           true = 1,
@@ -125,7 +124,7 @@ dbcap1_rma%>%
          u5mort_2010 = U5mort_2010)%>% 
   pivot_longer(cols = -code_muni,
                names_to = c(".value", "year"),
-               names_pattern = "(.+)_(.+)",) %>%
+               names_pattern = "(.+)_(.+)") %>%
   glimpse() -> pl_nvcs
 
 plF_nvcs<- pl_nvcs
@@ -135,6 +134,11 @@ plF_nvcs$def.stage<- as.factor(plF_nvcs$def.stage)
 glimpse(plF_nvcs)
 
 ##IDHM_E####
+lmer.idhE<- lmer(data = plF_nvcs, formula = IDHM_E ~ def.stage*year + (1 | code_muni))
+tab.idhE<- car::Anova(lmer.idhE, type = "II")
+summary(lmer.idhE)
+pw.idhE<- emmeans(lmer.idhE, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
 ggplot(data = plF_nvcs, aes(x = year, y = IDHM_E, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(IDHM_E)))+
   scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
@@ -150,11 +154,6 @@ ggplot(data = plF_nvcs, aes(x = year, y = IDHM_E, fill = def.stage)) +
               tip_length = 0)+
   theme_classic(base_size = 14) -> rma_idhE
 ggsave(filename = "HDI-E_defstage.png")
-
-lmer.idhE<- lmer(data = plF_nvcs, formula = IDHM_E ~ def.stage*year + (1 | code_muni))
-tab.idhE<- car::Anova(lmer.idhE, type = "II")
-summary(lmer.idhE)
-pw.idhE<- emmeans(lmer.idhE, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
 
 ##IDHM_L####
 ggplot(data = plF_nvcs, aes(x = year, y = IDHM_L, fill = def.stage)) +
