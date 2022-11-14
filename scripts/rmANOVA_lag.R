@@ -44,7 +44,7 @@ mapb5_cover %>%
          ) %>% 
   select(-area) %>% 
   filter(year != "mun") %>% 
-  mutate(defStage = if_else(condition = defPerc > 0 & defPerc <= 33 ,
+  mutate(defStage = if_else(condition = defPerc >= 0 & defPerc <= 33 ,
                             true = 1,
                             false = if_else(condition = defPerc > 33 & defPerc <= 66,
                                             true = 2,
@@ -67,7 +67,7 @@ writexl::write_xlsx(x = db_lag_na, path = "data/db_lag_na.xlsx")
 #socioeconomic data. Don't know how to do this in R :( so I cheated and used
 #Calc for that. Then I imported the filled data into R.
 
-read_xlsx(path = "data/db_lag_na.xlsx")-> db_lag_full
+read_xlsx(path = "data/db_lag_full.xlsx")-> db_lag_full
 
 rma_lag_fun <- function(year1, year2, year3){
   db_lag_full %>% 
@@ -82,19 +82,33 @@ rma_lag_fun <- function(year1, year2, year3){
     glimpse
 }
 
-rma_lag_fun(year1 = 1985, year2 = 1994, year3 = 2004) -> rma_lag_1
-rma_lag_fun(1986, 1995, 2005) -> rma_lag_2
-rma_lag_fun(1987, 1996, 2006) -> rma_lag_3
-rma_lag_fun(1988, 1997, 2007) -> rma_lag_4
-rma_lag_fun(1989, 1998, 2008) -> rma_lag_5
-rma_lag_fun(1990, 1999, 2009) -> rma_lag_6
-rma_lag_fun(1991, 2000, 2010) -> rma_lag_7
+rma_lag_fun(year1 = 1985, year2 = 1994, year3 = 2004) -> rma_lag_6
+rma_lag_fun(1986, 1995, 2005) -> rma_lag_5
+rma_lag_fun(1987, 1996, 2006) -> rma_lag_4
+rma_lag_fun(1988, 1997, 2007) -> rma_lag_3
+rma_lag_fun(1989, 1998, 2008) -> rma_lag_2
+rma_lag_fun(1990, 1999, 2009) -> rma_lag_1
+rma_lag_fun(1991, 2000, 2010) -> rma_lag_0
+list(rma_lag_6, rma_lag_5, rma_lag_4, rma_lag_3,rma_lag_2, rma_lag_1, rma_lag_0) -> list_lags
 
 #Analysis----
-##group 1 - 1985, 1994, 2004----
-###IDHM_E----
-lmer(data = rma_lag_1, formula = IDHM_E ~ defStage*year + (1 | code_muni)) -> lmer.idhE_1
-tab.idhE_1<- car::Anova(lmer.idhE_1, type = "II")
-summary(lmer.idhE_1)
-pw.idhE_1<- emmeans(lmer.idhE_1, pairwise ~ defStage*year, pbkrtest.limit = 3621)
+##IDHM_E----
+lapply(list_lags, lmer, formula = IDHM_E ~ defStage*year + (1 | code_muni))-> list_lmer.idhE
+lapply(list_lmer.idhE, car::Anova, type = "II")-> list_anova.idhE
+lapply(list_lmer.idhE, emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621)-> list_pw.idhE
+
+##IDHM_L----
+lapply(list_lags, lmer, formula = IDHM_L ~ defStage*year + (1 | code_muni))-> list_lmer.idhE
+lapply(list_lmer.idhE, car::Anova, type = "II")-> list_anova.idhE
+lapply(list_lmer.idhE, emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621)-> list_pw.idhE
+
+c()-> list_lmer
+
+for (i in colnames(rma_lag_0[,4:10])) {
+  lapply(list_lags, lmer, formula = paste(i, "~ defStage*year + (1 | code_muni)")) -> list_lmer[[i]]
+  } 
+
+lapply(unlist(list_lmer), emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621) -> list_pw
+
+list_pw["gini1"]
 
