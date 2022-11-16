@@ -92,15 +92,6 @@ rma_lag_fun(1991, 2000, 2010) -> rma_lag_0
 list(rma_lag_6, rma_lag_5, rma_lag_4, rma_lag_3,rma_lag_2, rma_lag_1, rma_lag_0) -> list_lags
 
 #Analysis----
-##IDHM_E----
-lapply(list_lags, lmer, formula = IDHM_E ~ defStage*year + (1 | code_muni))-> list_lmer.idhE
-lapply(list_lmer.idhE, car::Anova, type = "II")-> list_anova.idhE
-lapply(list_lmer.idhE, emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621)-> list_pw.idhE
-
-##IDHM_L----
-lapply(list_lags, lmer, formula = IDHM_L ~ defStage*year + (1 | code_muni))-> list_lmer.idhE
-lapply(list_lmer.idhE, car::Anova, type = "II")-> list_anova.idhE
-lapply(list_lmer.idhE, emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621)-> list_pw.idhE
 
 c()-> list_lmer
 
@@ -109,6 +100,3 @@ for (i in colnames(rma_lag_0[,4:10])) {
   } 
 
 lapply(unlist(list_lmer), emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621) -> list_pw
-
-list_pw["gini1"]
-
