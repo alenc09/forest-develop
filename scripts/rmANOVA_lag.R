@@ -92,11 +92,33 @@ rma_lag_fun(1991, 2000, 2010) -> rma_lag_0
 list(rma_lag_6, rma_lag_5, rma_lag_4, rma_lag_3,rma_lag_2, rma_lag_1, rma_lag_0) -> list_lags
 
 #Analysis----
-
+##effect size with lagged data---- 
 c()-> list_lmer
 
-for (i in colnames(rma_lag_0[,4:10])) {
-  lapply(list_lags, lmer, formula = paste(i, "~ defStage*year + (1 | code_muni)")) -> list_lmer[[i]]
-  } 
+for (i in colnames(rma_lag_0[, 4:10])) {
+  lapply(list_lags,
+         lmer,
+         formula = paste(i, "~ defStage*year + (1 | code_muni)")) -> list_lmer[[i]]
+} 
 
-lapply(unlist(list_lmer), emmeans, pairwise ~ defStage*year, pbkrtest.limit = 3621) -> list_pw
+lapply(unlist(list_lmer),
+       emmeans,
+       pairwise ~ defStage * year,
+       pbkrtest.limit = 3621) -> list_pw
+
+##change in number of municipalities per deforestation stage----
+db_lag_full %>% 
+  mutate(across(.cols = defStage_1985:defStage_2010,.fns = as.factor)) %>%
+  pivot_longer(cols = defStage_1985:defStage_2010,
+               names_to = "year",
+               names_prefix = "defStage_",
+               values_to = "defStage"
+               ) %>%
+  group_by(year, defStage) %>%
+  summarise(n_mun = n()) %>%
+  glimpse -> tab_mun_n
+
+db_lag_full%>%
+  filter(defStage_2010 == 3 & defStage_2004 == 2) %>% #change the values to change what groups to compare
+  nrow() 
+  
