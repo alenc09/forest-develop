@@ -88,6 +88,9 @@ glm_lag_IDHE <- function(i){
 
 lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
        FUN = glm_lag_IDHE)-> l_lag_idhE
+lapply(l_lag_idhE, summary)
+
+
 compare_performance(l_lag_idhE, metrics = "common",rank = T) -> compare_lag_idhE
 
 
@@ -100,6 +103,7 @@ glm_lag_IDHL <- function(i){
 
 lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
        FUN = glm_lag_IDHL)-> l_lag_idhL
+lapply(l_lag_idhL, summary)
 compare_performance(l_lag_idhL, metrics = "common",rank = T) -> compare_lag_idhL
 
 ####outcome IDHM_R####
@@ -111,6 +115,8 @@ glm_lag_IDHR <- function(i){
 
 lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
        FUN = glm_lag_IDHR)-> l_lag_idhR
+lapply(l_lag_idhR, summary)
+
 compare_performance(l_lag_idhR, metrics = "common",rank = T) -> compare_lag_idhR
 
 ####outcome expov----
@@ -122,6 +128,8 @@ glm_lag_expov <- function(i){
 
 lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
        FUN = glm_lag_expov)-> l_lag_expov
+lapply(l_lag_expov, summary)
+
 compare_performance(l_lag_expov, metrics = "common",rank = T) -> compare_lag_expov
 
 ####outcome gini####
@@ -133,6 +141,8 @@ glm_lag_gini <- function(i){
 
 lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
        FUN = glm_lag_gini)-> l_lag_gini
+lapply(l_lag_gini, summary)
+
 compare_performance(l_lag_gini, metrics = "common",rank = T) -> compare_lag_gini
 
 
@@ -146,6 +156,8 @@ glm_lag_u5mort <- function(i){
 
 lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
        FUN = glm_lag_u5mort)-> l_lag_u5mort
+lapply(l_lag_u5mort, summary)
+
 compare_performance(l_lag_u5mort, metrics = "common",rank = T) -> compare_lag_u5mort
 
 #export----
