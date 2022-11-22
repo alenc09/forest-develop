@@ -9,6 +9,8 @@ library(geobr)
 library(spdep)
 library(stringr)
 library(performance)
+library(ggplot2)
+library(ggpubr)
 
 #data----
 # read_xlsx(path = "/home/alenc/Documents/Doutorado/Dados/mapb5_cobertura_selec.xlsx") ->mapb5_cover
@@ -167,3 +169,67 @@ write.table(x = compare_lag_idhR, file = "data/comp_lag_idhR.csv", sep = "|", de
 write.table(x = compare_lag_expov, file = "data/comp_lag_expov.csv", sep = "|", dec = ".")
 write.table(x = compare_lag_gini, file = "data/comp_lag_gini.csv", sep = "|", dec = ".")
 write.table(x = compare_lag_u5mort, file = "data/comp_lag_u5mort.csv", sep = "|", dec = ".")
+
+#Figures----
+##IDHM_E----
+ggplot(data = data[-142,], aes(x = defPerc_2005, y = IDHM_E_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Education")+
+  xlab("Total deforestation in 2005 (%)")+
+  theme_classic()+
+  theme(legend.position = "none") ->fig.IDHM_E_10
+
+##IDHM_L----
+ggplot(data = data[-142,], aes(x = defPerc_2006, y = IDHM_L_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Longevity")+
+  xlab("Total deforestation in 2006 (%)")+
+  theme_classic()+
+  theme(legend.position = "none") ->fig.IDHM_L_10
+
+##IDHM_R----
+ggplot(data = data[-142,], aes(x = defPerc_2007, y = IDHM_R_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Income")+
+  xlab("Total deforestation in 2007 (%)")+
+  theme_classic()+
+  theme(legend.position = "none") -> fig.IDHM_R_10
+
+##Extreme poverty----
+ggplot(data = data[-142,], aes(x = defPerc_2006, y = expov_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("Extreme Poverty")+
+  xlab("Total deforestation in 2006 (%)")+
+  theme_classic()+
+  theme(legend.position = "none") -> fig.expov_10
+
+##gini----
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = gini_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("Gini Index")+
+  xlab("Total deforestation in 2010 (%)")+
+  theme_classic()+
+  theme(legend.position = "none")->fig.gini_10
+
+##u5mort----
+ggplot(data = data[-142,], aes(x = defPerc_2006, y = u5mort_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("Under five mortality")+
+  xlab("Total deforestation in 2006 (%)")+
+  theme_classic()+
+  theme(legend.position = "none")->fig.u5mort_10
+
+##figure 3####
+ggarrange(fig.IDHM_E_10, fig.IDHM_L_10, fig.IDHM_R_10, fig.expov_10, fig.gini_10, fig.u5mort_10,
+          labels = c("a","b", "c", "d", "e", "f"))-> fig3
+ggsave(plot = fig3,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/fig3_lag.png",
+       dpi = 300,
+       width = 10,
+       height = 6)

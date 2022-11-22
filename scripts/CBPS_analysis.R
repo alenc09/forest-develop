@@ -295,54 +295,63 @@ summary(impacts(m.u5mort_spat,
 
 #Figures ####
 #IDHM_E
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_E_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = IDHM_E_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Education")+
   theme_classic()+
-  xlab("NVC (%)")+
-  ylab("HDI - Education")->fig.IDHM_E_10
+  theme(legend.position = "none"
+        ,axis.title.x = element_blank()) ->fig.IDHM_E_10
 
 #IDHM_L
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_L_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = IDHM_L_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Longevity")+
   theme_classic()+
-  xlab("NVC (%)")+
-  ylab("HDI - Longevity")->fig.IDHM_L_10
+  theme(legend.position = "none",axis.title.x = element_blank())->fig.IDHM_L_10
 
 #IDHM_R
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = IDHM_R_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = IDHM_R_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  ylab("HDI - Income")+
   theme_classic()+
-  xlab("NVC (%)")+
-  ylab("HDI - Income")->fig.IDHM_R_10
+  theme(legend.position = "none"
+        ,axis.title.x = element_blank())->fig.IDHM_R_10
 
 #Extreme poverty
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = expov_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = expov_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  xlab("Deforestation (%)")+
+  ylab("Extreme Poverty")+
   theme_classic()+
-  xlab("NVC (%)")+
-  ylab("Extreme poverty")->fig.expov_10
+  theme(legend.position = "none")#->fig.expov_10
 
 #gini
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = gini_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = gini_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  xlab("Deforestation (%)")+
+  ylab("Gini Index")+
   theme_classic()+
-  xlab("NVC (%)")+
-  ylab("Gini Index")->fig.gini_10
+  theme(legend.position = "none")->fig.gini_10
 
 #u5mort
-ggplot(data = data[-c(38,616),], aes(x = nvcPerc_2010, y = u5mort_2010))+
-  geom_point(alpha  = 0.5)+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.5, fill = "grey20")+
+ggplot(data = data[-142,], aes(x = defPerc_2010, y = u5mort_2010))+
+  geom_point(alpha  = 0.2, color = "#5c3811")+
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
+  xlab("Deforestation (%)")+
+  ylab("Under five mortality")+
   theme_classic()+
-  xlab("NVC (%)")+
-  ylab("Under five mortality")->fig.u5mort_10
+  theme(legend.position = "none")->fig.u5mort_10
 
-#3figure 3####
+##figure 3####
 ggarrange(fig.IDHM_E_10, fig.IDHM_L_10, fig.IDHM_R_10, fig.expov_10, fig.gini_10, fig.u5mort_10,
           labels = c("a","b", "c", "d", "e", "f"))-> fig3
-ggsave(plot = fig3, filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig3.png")
+ggsave(plot = fig3,
+       filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig3.png",
+       dpi = 300,
+       width = 10,
+       height = 6)
