@@ -11,6 +11,10 @@ library(stringr)
 library(performance)
 library(ggplot2)
 library(ggpubr)
+library(MuMIn)
+library(dotwhisker)
+library(ggforce)
+library(ggbreak)
 
 #data----
 # read_xlsx(path = "/home/alenc/Documents/Doutorado/Dados/mapb5_cobertura_selec.xlsx") ->mapb5_cover
@@ -88,13 +92,14 @@ glm_lag_IDHE <- function(i){
         i + I(i ^ 2),
       weights = modeldef$weights)} 
 
-lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+lapply(dplyr:::select(.data = data[-142, ],
+                      defPerc_2010, defPerc_2009:defPerc_2005),
        FUN = glm_lag_IDHE)-> l_lag_idhE
+
 lapply(l_lag_idhE, summary)
 
-
-compare_performance(l_lag_idhE, metrics = "common",rank = T) -> compare_lag_idhE
-
+model.avg(l_lag_idhE) %>% 
+  summary() -> avg_lag_idhE 
 
 ####outcome IDHM_L####
 glm_lag_IDHL <- function(i){
@@ -103,10 +108,30 @@ glm_lag_IDHL <- function(i){
         i + I(i ^ 2),
       weights = modeldef$weights)} 
 
-lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+lapply(dplyr:::select(.data = data[-142, ], 
+                      defPerc_2010, defPerc_2009:defPerc_2005),
        FUN = glm_lag_IDHL)-> l_lag_idhL
 lapply(l_lag_idhL, summary)
-compare_performance(l_lag_idhL, metrics = "common",rank = T) -> compare_lag_idhL
+
+model.avg(l_lag_idhL) -> avg_lag_idhL
+summary(avg_lag_idhL)
+
+avg_lag_idhL %>%   
+get.models(subset = delta < 2) %>%
+  model.avg() %>% 
+  summary -> sub_avg_lag_idhL
+
+# plot(x = avg_lag_idhL,
+#           labels = c("def", "def_sqr"),
+#           main = NULL,
+#           intercept = F, horizontal = F)
+
+coefTab_avg_lag_idhL_full %>%
+   as_tibble() %>%
+  # mutate(var = as.factor(c("def", "def^2")),
+  #        mod = as.factor(c("idhL", "idhL"))) %>%
+  # rbind(tab_avg_mods) %>% 
+  glimpse #-> tab_avg_mods
 
 ####outcome IDHM_R####
 glm_lag_IDHR <- function(i){
@@ -115,38 +140,94 @@ glm_lag_IDHR <- function(i){
         i + I(i ^ 2),
       weights = modeldef$weights)} 
 
-lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+lapply(dplyr:::select(.data = data[-142, ], 
+                      defPerc_2010, defPerc_2009:defPerc_2005),
        FUN = glm_lag_IDHR)-> l_lag_idhR
 lapply(l_lag_idhR, summary)
 
-compare_performance(l_lag_idhR, metrics = "common",rank = T) -> compare_lag_idhR
+model.avg(l_lag_idhR) -> avg_lag_idhR
+summary(avg_lag_idhR)
+
+avg_lag_idhR %>% 
+  get.models(subset = delta < 2) %>% 
+  model.avg() %>% 
+  summary -> sub_avg_lag_idhR
+
+
+coefTable(avg_lag_idhR, full = TRUE)-> coefTab_avg_lag_idhR
+# plot(x = avg_lag_idhL,
+#           labels = c("def", "def_sqr"),
+#           main = NULL,
+#           intercept = F, horizontal = F)
+
+coefTab_avg_lag_idhR[-1,-3] %>%
+  as_tibble() %>%
+  mutate(var = as.factor(c("def", "def^2")),
+         mod = as.factor(c("idhR", "idhR"))) %>%
+  rbind(tab_avg_mods) %>% 
+  glimpse -> tab_avg_mods
 
 ####outcome expov----
 glm_lag_expov <- function(i){
   glm(data = data[-142,], 
       expov_2010 ~
         i + I(i ^ 2),
-      weights = modeldef$weights)} 
+        weights = modeldef$weights)}
 
-lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+lapply(dplyr:::select(.data = data[-142, ], 
+                      defPerc_2010, defPerc_2009:defPerc_2005),
        FUN = glm_lag_expov)-> l_lag_expov
 lapply(l_lag_expov, summary)
 
-compare_performance(l_lag_expov, metrics = "common",rank = T) -> compare_lag_expov
+model.avg(l_lag_expov) -> avg_lag_expov
+summary(avg_lag_expov)
+
+avg_lag_expov %>% 
+  get.models(subset = delta < 2) %>% 
+  model.avg() %>% 
+  summary -> sub_avg_lag_expov
+coefTable(avg_lag_expov, full = TRUE)-> coefTab_avg_lag_expov
+
+# plot(x = avg_lag_idhL,
+#           labels = c("def", "def_sqr"),
+#           main = NULL,
+#           intercept = F, horizontal = F)
+
+coefTab_avg_lag_expov[-1,-3] %>%
+  as_tibble() %>%
+  mutate(var = as.factor(c("def", "def^2")),
+         mod = as.factor(c("expov", "expov"))) %>%
+  rbind(tab_avg_mods) %>% 
+  glimpse -> tab_avg_mods
 
 ####outcome gini####
 glm_lag_gini <- function(i){
   glm(data = data[-142,], 
       gini_2010 ~
         i + I(i ^ 2),
-      weights = modeldef$weights)} 
+      weights = modeldef$weights)}
 
-lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+lapply(dplyr:::select(.data = data[-142, ], 
+                      defPerc_2010, defPerc_2009:defPerc_2005),
        FUN = glm_lag_gini)-> l_lag_gini
 lapply(l_lag_gini, summary)
 
-compare_performance(l_lag_gini, metrics = "common",rank = T) -> compare_lag_gini
+model.avg(l_lag_gini) -> avg_lag_gini 
+summary(avg_lag_gini)
 
+coefTable(avg_lag_gini, full = TRUE)-> coefTab_avg_lag_gini
+
+# plot(x = avg_lag_idhL,
+#           labels = c("def", "def_sqr"),
+#           main = NULL,
+#           intercept = F, horizontal = F)
+
+coefTab_avg_lag_gini[-1,-3] %>%
+  as_tibble() %>%
+  mutate(var = as.factor(c("def", "def^2")),
+         mod = as.factor(c("gini", "gini"))) %>%
+  rbind(tab_avg_mods) %>% 
+  glimpse -> tab_avg_mods
 
 
 ####outcome u5mort####
@@ -154,82 +235,176 @@ glm_lag_u5mort <- function(i){
   glm(data = data[-142,], 
       u5mort_2010 ~
         i + I(i ^ 2),
-      weights = modeldef$weights)} 
+      weights = modeldef$weights)}
 
-lapply(dplyr:::select(.data = data[-142, ], starts_with("defPerc")),
+lapply(dplyr:::select(.data = data[-142, ], 
+                      defPerc_2010, defPerc_2009:defPerc_2005),
        FUN = glm_lag_u5mort)-> l_lag_u5mort
 lapply(l_lag_u5mort, summary)
 
-compare_performance(l_lag_u5mort, metrics = "common",rank = T) -> compare_lag_u5mort
+model.avg(l_lag_u5mort) -> avg_lag_u5mort 
+summary(avg_lag_u5mort)
 
-#export----
-write.table(x = compare_lag_idhE, file = "data/comp_lag_idhE.csv", sep = "|", dec = ".")
-write.table(x = compare_lag_idhL, file = "data/comp_lag_idhL.csv", sep = "|", dec = ".")
-write.table(x = compare_lag_idhR, file = "data/comp_lag_idhR.csv", sep = "|", dec = ".")
-write.table(x = compare_lag_expov, file = "data/comp_lag_expov.csv", sep = "|", dec = ".")
-write.table(x = compare_lag_gini, file = "data/comp_lag_gini.csv", sep = "|", dec = ".")
-write.table(x = compare_lag_u5mort, file = "data/comp_lag_u5mort.csv", sep = "|", dec = ".")
+avg_lag_u5mort %>% 
+get.models(subset = delta < 2) %>% 
+  model.avg() %>% 
+  summary() -> sub_avg_lag_u5mort
+
+
+
+coefTable(avg_lag_u5mort, full = TRUE)-> coefTab_avg_lag_u5mort
+
+# plot(x = avg_lag_idhL,
+#           labels = c("def", "def_sqr"),
+#           main = NULL,
+#           intercept = F, horizontal = F)
+
+coefTab_avg_lag_u5mort[-1,-3] %>%
+  as_tibble() %>%
+  mutate(var = as.factor(c("def", "def^2")),
+         mod = as.factor(c("u5mort", "u5mort"))) %>%
+  rbind(tab_avg_mods) %>% 
+  glimpse -> tab_avg_mods
 
 #Figures----
 ##IDHM_E----
-ggplot(data = data[-142,], aes(x = defPerc_2005, y = IDHM_E_2010))+
-  geom_point(alpha  = 0.2, color = "#5c3811")+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
-  ylab("HDI - Education")+
-  xlab("Total deforestation in 2005 (%)")+
-  theme_classic()+
-  theme(legend.position = "none") ->fig.IDHM_E_10
+lapply(l_lag_idhE, summary) %>% 
+  lapply(coef) %>% 
+  .$defPerc_2005 %>% 
+  as_tibble() %>% 
+  slice(-1) %>% 
+  mutate(var = as.factor(c("def", "def^2"))) %>% 
+  ggplot(aes(x = var, y = Estimate, colour = var))+ 
+  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
+  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+                linewidth = 0.3,
+                width = 0.1,
+                colour = "#5c3811")+
+  geom_point()+
+  scale_y_break(breaks = c(0.000002, 0.0002), scales = 10, expand = expansion(mult = 0.22))+
+  scale_x_discrete(label = c("DEF","DEF²"))+
+  scale_color_manual(values = c("#ffa600", "#ffa600"))+
+  labs(x = "HDI - Education", y = "Averaged coefficient and standard error")+
+  theme(panel.background = element_blank(),
+        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
+        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
+        legend.position = "none",
+        axis.text.x.top = element_blank(),
+        axis.ticks.x.top = element_line(linewidth = 0),
+        plot.title = element_text(hjust = 0.5, size = 10))-> avg_fig_IDHE
+  
+ggsave(plot = avg_fig_IDHE,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_IDHE.png")
 
 ##IDHM_L----
-ggplot(data = data[-142,], aes(x = defPerc_2006, y = IDHM_L_2010))+
-  geom_point(alpha  = 0.2, color = "#5c3811")+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
-  ylab("HDI - Longevity")+
-  xlab("Total deforestation in 2006 (%)")+
-  theme_classic()+
-  theme(legend.position = "none") ->fig.IDHM_L_10
+sub_avg_lag_idhL %>% 
+  coefTable() %>% 
+  as_tibble() %>% 
+  slice(-1) %>% 
+  mutate(var = as.factor(c("def", "def^2"))) %>% 
+  glimpse %>% 
+  ggplot(aes(x = var, y = Estimate, colour = var))+
+  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
+  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+                linewidth = 0.3,
+                width = 0.1,
+                colour = "#5c3811")+
+  geom_point()+
+  scale_y_break(breaks = c(0.000002, 0.0002), scales = 10, expand = expansion(mult = 0.22))+
+  scale_x_discrete(label = c("DEF","DEF²"))+
+  scale_color_manual(values = c("#ffa600", "#ffa600"))+
+  labs(x = "HDI - Longevity", y = "Averaged coefficient and standard error")+
+  theme(panel.background = element_blank(),
+        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
+        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
+        legend.position = "none",
+        axis.text.x.top = element_blank(),
+        axis.ticks.x.top = element_line(linewidth = 0),
+        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_IDHL
+
+ggsave(plot = avg_fig_IDHL,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_IDHL.png")
 
 ##IDHM_R----
-ggplot(data = data[-142,], aes(x = defPerc_2007, y = IDHM_R_2010))+
-  geom_point(alpha  = 0.2, color = "#5c3811")+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
-  ylab("HDI - Income")+
-  xlab("Total deforestation in 2007 (%)")+
-  theme_classic()+
-  theme(legend.position = "none") -> fig.IDHM_R_10
+tab_avg_mods %>%
+  filter(mod == "idhR") %>% 
+  ggplot(aes(x = var, y = Estimate, colour = var))+
+  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
+  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+                linewidth = 0.3,
+                width = 0.1,
+                colour = "#5c3811")+
+  geom_point()+
+  scale_x_discrete(label = c("DEF","DEF²"))+
+  scale_color_manual(values = c("#ffa600", "#ffa600"))+
+  labs(x = "HDI - Income", y = "Averaged coefficient and standard error")+
+  theme(panel.background = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 10))+
+  facet_zoom(ylim= c(-0.00005, 0.00003)) -> avg_fig_IDHR
+
+ggsave(plot = avg_fig_IDHR,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_IDHR.png")
 
 ##Extreme poverty----
-ggplot(data = data[-142,], aes(x = defPerc_2006, y = expov_2010))+
-  geom_point(alpha  = 0.2, color = "#5c3811")+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
-  ylab("Extreme Poverty")+
-  xlab("Total deforestation in 2006 (%)")+
-  theme_classic()+
-  theme(legend.position = "none") -> fig.expov_10
+tab_avg_mods %>%
+  filter(mod == "expov") %>% 
+  ggplot(aes(x = var, y = Estimate, colour = var))+
+  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
+  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+                linewidth = 0.3,
+                width = 0.1,
+                colour = "#5c3811")+
+  geom_point()+
+  scale_x_discrete(label = c("DEF","DEF²"))+
+  scale_color_manual(values = c("#ffa600", "#ffa600"))+
+  labs(x = "Extreme poverty", y = "Averaged coefficient and standard error")+
+  theme(panel.background = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 10))+
+  facet_zoom(ylim= c(-0.005, 0.003)) -> avg_fig_expov
+
+ggsave(plot = avg_fig_expov,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_expov.png")
 
 ##gini----
-ggplot(data = data[-142,], aes(x = defPerc_2010, y = gini_2010))+
-  geom_point(alpha  = 0.2, color = "#5c3811")+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
-  ylab("Gini Index")+
-  xlab("Total deforestation in 2010 (%)")+
-  theme_classic()+
-  theme(legend.position = "none")->fig.gini_10
+tab_avg_mods %>%
+  filter(mod == "gini") %>% 
+  ggplot(aes(x = var, y = Estimate, colour = var))+
+  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
+  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+                linewidth = 0.3,
+                width = 0.1,
+                colour = "#5c3811")+
+  geom_point()+
+  scale_x_discrete(label = c("DEF","DEF²"))+
+  scale_color_manual(values = c("#ffa600", "#ffa600"))+
+  labs(x = "Income inequality", y = "Averaged coefficient and standard error")+
+  theme(panel.background = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 10))+
+  facet_zoom(ylim= c(-0.00005, 0.00003)) -> avg_fig_gini
+
+ggsave(plot = avg_fig_gini,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_gini.png")
 
 ##u5mort----
-ggplot(data = data[-142,], aes(x = defPerc_2006, y = u5mort_2010))+
-  geom_point(alpha  = 0.2, color = "#5c3811")+
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
-  ylab("Under five mortality")+
-  xlab("Total deforestation in 2006 (%)")+
-  theme_classic()+
-  theme(legend.position = "none")->fig.u5mort_10
+tab_avg_mods %>%
+  filter(mod == "u5mort") %>% 
+  ggplot(aes(x = var, y = Estimate, colour = var))+
+  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
+  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+                linewidth = 0.3,
+                width = 0.1,
+                colour = "#5c3811")+
+  geom_point()+
+  scale_x_discrete(label = c("DEF","DEF²"))+
+  scale_color_manual(values = c("#ffa600", "#ffa600"))+
+  labs(x = "Under five mortality", y = "Averaged coefficient and standard error")+
+  theme(panel.background = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 10))+
+  facet_zoom(ylim= c(-0.005, 0.003)) -> avg_fig_u5mort
 
-##figure 3####
-ggarrange(fig.IDHM_E_10, fig.IDHM_L_10, fig.IDHM_R_10, fig.expov_10, fig.gini_10, fig.u5mort_10,
-          labels = c("a","b", "c", "d", "e", "f"))-> fig3
-ggsave(plot = fig3,
-       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/fig3_lag.png",
-       dpi = 300,
-       width = 10,
-       height = 6)
+ggsave(plot = avg_fig_u5mort,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_u5mort.png")
