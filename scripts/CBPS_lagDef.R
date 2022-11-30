@@ -198,62 +198,94 @@ get.models(subset = delta < 2) %>%
 
 #Figures----
 ##IDHM_E----
-lapply(l_lag_idhE, summary) %>% 
-  lapply(coef) %>% 
-  .$defPerc_2005 %>% 
-  as_tibble() %>% 
-  slice(-1) %>% 
-  mutate(var = as.factor(c("def", "def^2"))) %>% 
-  ggplot(aes(x = var, y = Estimate, colour = var))+ 
-  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
-                linewidth = 0.3,
-                width = 0.1,
-                colour = "#5c3811")+
-  geom_point()+
-  scale_y_break(breaks = c(0.000002, 0.0002), scales = "free", expand = expansion(mult = 0.22))+
-  scale_x_discrete(label = c("DEF","DEF²"))+
-  annotate(geom = "point", shape = c("_","_"), x = -Inf, y = c(0.000004, 0.000024), size = 6)+
-  scale_color_manual(values = c("#ffa600", "#ffa600"))+
-  labs(x = "HDI - Education", y = "Weighted average coefficient and standard error")+
-  theme(panel.background = element_blank(),
-        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
-        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
-        legend.position = "none",
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_line(linewidth = 0),
-        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_IDHE
+lapply(l_lag_idhE, summary) %>%
+  lapply(coef) %>%
+  .$defPerc_2005 %>%
+  as_tibble() %>%
+  slice(-1) %>%
+  mutate(var = as.factor(c("def", "def^2"))) %>%
+  ggplot(aes(x = var, y = Estimate, colour = var)) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.1,
+             color = "red") +
+  geom_errorbar(
+    aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+    linewidth = 0.3,
+    width = 0.1,
+    colour = "#5c3811"
+  ) +
+  geom_point() +
+  scale_y_break(
+    breaks = c(0.000002, 0.00024),
+    scales = "free",
+    expand = expansion(mult = 0.22)
+  ) +
+  scale_x_discrete(label = c("DEF", "DEF²")) +
+  annotate(
+    geom = "point",
+    shape = c("_", "_"),
+    x = -Inf,
+    y = c(0.000004, 0.000089),
+    size = 6
+  ) +
+  scale_color_manual(values = c("#ffa600", "#ffa600")) +
+  labs(x = "HDI - Education", y = "") +
+  theme(
+    panel.background = element_blank(),
+    axis.line.x.bottom = element_line(colour = "black", linewidth = 0.2),
+    axis.line.y.left = element_line(colour = "black", linewidth = 0.2),
+    legend.position = "none",
+    axis.text.x.top = element_blank(),
+    axis.ticks.x.top = element_line(linewidth = 0),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  ) -> avg_fig_IDHE
   
 ggsave(plot = avg_fig_IDHE,
        filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_IDHE.png",
        height = 4)
 
 ##IDHM_L----
-sub_avg_lag_idhL %>% 
-  coefTable() %>% 
-  as_tibble() %>% 
-  slice(-1) %>% 
-  mutate(var = as.factor(c("def", "def^2"))) %>% 
-  glimpse %>% 
-  ggplot(aes(x = var, y = Estimate, colour = var))+
-  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
-                linewidth = 0.3,
-                width = 0.1,
-                colour = "#5c3811")+
-  geom_point()+
-  scale_y_break(breaks = c(0.000002, 0.0002), scales = "free", expand = expansion(mult = 0.22))+
-  scale_x_discrete(label = c("DEF","DEF²"))+
-  scale_color_manual(values = c("#ffa600", "#ffa600"))+
-  annotate(geom = "point", shape = c("_","_"), x = -Inf, y = c(0.000004, 0.000084), size = 6)+
-  labs(x = "HDI - Longevity", y = "Weighted average coefficient and standard error")+
-  theme(panel.background = element_blank(),
-        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
-        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
-        legend.position = "none",
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_line(linewidth = 0),
-        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_IDHL
+sub_avg_lag_idhL %>%
+  coefTable() %>%
+  as_tibble() %>%
+  slice(-1) %>%
+  mutate(var = as.factor(c("def", "def^2"))) %>%
+  glimpse %>%
+  ggplot(aes(x = var, y = Estimate, colour = var)) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.1,
+             color = "red") +
+  geom_errorbar(
+    aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+    linewidth = 0.3,
+    width = 0.1,
+    colour = "#5c3811"
+  ) +
+  geom_point() +
+  scale_y_break(
+    breaks = c(0.000002, 0.0002),
+    scales = "free",
+    expand = expansion(mult = 0.22)
+  ) +
+  scale_x_discrete(label = c("DEF", "DEF²")) +
+  scale_color_manual(values = c("#ffa600", "#ffa600")) +
+  annotate(
+    geom = "point",
+    shape = c("_", "_"),
+    x = -Inf,
+    y = c(0.000004, 0.000084),
+    size = 6
+  ) +
+  labs(x = "HDI - Longevity", y = "") +
+  theme(
+    panel.background = element_blank(),
+    axis.line.x.bottom = element_line(colour = "black", linewidth = 0.2),
+    axis.line.y.left = element_line(colour = "black", linewidth = 0.2),
+    legend.position = "none",
+    axis.text.x.top = element_blank(),
+    axis.ticks.x.top = element_line(linewidth = 0),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  ) -> avg_fig_IDHL
 
 ggsave(plot = avg_fig_IDHL,
        filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_IDHL.png",
@@ -261,128 +293,211 @@ ggsave(plot = avg_fig_IDHL,
 
 ##IDHM_R----
 sub_avg_lag_idhR %>%
-  coefTable() %>% 
-  as_tibble %>% 
-  slice(-1) %>% 
+  coefTable() %>%
+  as_tibble %>%
+  slice(-1) %>%
   mutate(var = as.factor(c("def", "def^2"))) %>%
-  glimpse %>% 
-  ggplot(aes(x = var, y = Estimate, colour = var))+
-  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
-                linewidth = 0.3,
-                width = 0.1,
-                colour = "#5c3811")+
-  geom_point()+
-  scale_y_break(breaks = c(0.000002, 0.0002), scales = 'free', expand = expansion(mult = 0.185))+
-  scale_x_discrete(label = c("DEF","DEF²"))+
-  scale_color_manual(values = c("#ffa600", "#ffa600"))+
-  annotate(geom = "point", shape = c("_","_"), x = -Inf, y = c(0.00000425, 0.000012), size = 6)+
-  labs(x = "HDI - Income", y = "Weighted average coefficient and standard error")+
-  theme(panel.background = element_blank(),
-        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
-        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
-        legend.position = "none",
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_line(linewidth = 0),
-        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_IDHR
+  glimpse %>%
+  ggplot(aes(x = var, y = Estimate, colour = var)) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.1,
+             color = "red") +
+  geom_errorbar(
+    aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+    linewidth = 0.3,
+    width = 0.1,
+    colour = "#5c3811"
+  ) +
+  geom_point() +
+  scale_y_break(
+    breaks = c(0.000002, 0.00022),
+    scales = 'free',
+    expand = expansion(mult = 0.175)
+  ) +
+  scale_x_discrete(label = c("DEF", "DEF²")) +
+  scale_color_manual(values = c("#ffa600", "#ffa600")) +
+  annotate(
+    geom = "point",
+    shape = c("_", "_"),
+    x = -Inf,
+    y = c(0.0000041, 0.00005),
+    size = 6
+  ) +
+  labs(x = "HDI - Income", y = "Weighted average coefficient and SE") +
+  theme(
+    panel.background = element_blank(),
+    axis.line.x.bottom = element_line(colour = "black", linewidth = 0.2),
+    axis.line.y.left = element_line(colour = "black", linewidth = 0.2),
+    legend.position = "none",
+    axis.text.x.top = element_blank(),
+    axis.ticks.x.top = element_line(linewidth = 0),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  ) -> avg_fig_IDHR
 
 ggsave(plot = avg_fig_IDHR,
        filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_IDHR.png",
        height = 4)
 
 ##Extreme poverty----
-sub_avg_lag_expov %>% 
-  coefTable() %>% 
-  as_tibble() %>% 
-  slice(-1) %>% 
+sub_avg_lag_expov %>%
+  coefTable() %>%
+  as_tibble() %>%
+  slice(-1) %>%
   mutate(var = as.factor(c("def", "def^2"))) %>%
-  glimpse %>% 
-  ggplot(aes(x = var, y = Estimate, colour = var))+
-  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
-                linewidth = 0.3,
-                width = 0.1,
-                colour = "#5c3811")+
-  geom_point()+
-  scale_y_break(breaks = c(-0.01, -0.1), scales = "free", expand = expansion(mult = 0.1))+
-  annotate(geom = "point", shape = c("_","_"), x = -Inf, y = c(-0.01128, -0.075), size = 6)+
-  scale_x_discrete(label = c("DEF","DEF²"))+
-  scale_y_continuous(limits = c(-0.35, 0.003))+
-  scale_color_manual(values = c("#ffa600", "#ffa600"))+
-  labs(x = "Extreme poverty", y = "Weighted average coefficient and standard error")+
-  theme(panel.background = element_blank(),
-        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
-        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
-        legend.position = "none",
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_line(linewidth = 0),
-        axis.text.y.right = element_blank(),
-        axis.ticks.y.right = element_blank(),
-        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_expov
+  glimpse %>%
+  ggplot(aes(x = var, y = Estimate, colour = var)) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.1,
+             color = "red") +
+  geom_errorbar(
+    aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+    linewidth = 0.3,
+    width = 0.1,
+    colour = "#5c3811"
+  ) +
+  geom_point() +
+  scale_y_break(
+    breaks = c(-0.01,-0.1),
+    scales = "free",
+    expand = expansion(mult = 0.1)
+  ) +
+  annotate(
+    geom = "point",
+    shape = c("_", "_"),
+    x = -Inf,
+    y = c(-0.01128,-0.075),
+    size = 6
+  ) +
+  scale_x_discrete(label = c("DEF", "DEF²")) +
+  scale_y_continuous(limits = c(-0.35, 0.003)) +
+  scale_color_manual(values = c("#ffa600", "#ffa600")) +
+  labs(x = "Extreme poverty", y = "") +
+  theme(
+    panel.background = element_blank(),
+    axis.line.x.bottom = element_line(colour = "black", linewidth = 0.2),
+    axis.line.y.left = element_line(colour = "black", linewidth = 0.2),
+    legend.position = "none",
+    axis.text.x.top = element_blank(),
+    axis.ticks.x.top = element_line(linewidth = 0),
+    axis.text.y.right = element_blank(),
+    axis.ticks.y.right = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  ) -> avg_fig_expov
 
 ggsave(plot = avg_fig_expov,
        filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_expov.png",
        height = 4)
 
 ##gini----
-lapply(l_lag_gini, summary) %>% 
-  lapply(coef) %>% 
-  .$defPerc_2010 %>% 
-  as_tibble %>% 
-  slice(-1) %>% 
+lapply(l_lag_gini, summary) %>%
+  lapply(coef) %>%
+  .$defPerc_2010 %>%
+  as_tibble %>%
+  slice(-1) %>%
   mutate(var = as.factor(c("def", "def^2"))) %>%
-  glimpse %>% 
-  ggplot(aes(x = var, y = Estimate, colour = var))+
-  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
-                linewidth = 0.3,
-                width = 0.1,
-                colour = "#5c3811")+
-  geom_point()+
-  scale_y_break(breaks = c(-0.0002, -0.00002), scales = "free", expand = expansion(mult = 0.1))+
-  annotate(geom = "point", shape = c("_","_"), x = -Inf, y = c(-0.000023, -0.000085), size = 6)+
-  scale_x_discrete(label = c("DEF","DEF²"))+
-  scale_color_manual(values = c("#ffa600", "#ffa600"))+
-  labs(x = "Gini income inequality index", y = "Weighted average coefficient and standard error")+
-  theme(panel.background = element_blank(),
-        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
-        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
-        legend.position = "none",
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_line(linewidth = 0),
-        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_gini
+  glimpse %>%
+  ggplot(aes(x = var, y = Estimate, colour = var)) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.1,
+             color = "red") +
+  geom_errorbar(
+    aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+    linewidth = 0.3,
+    width = 0.1,
+    colour = "#5c3811"
+  ) +
+  geom_point() +
+  scale_y_break(
+    breaks = c(-0.0002,-0.00002),
+    scales = "free",
+    expand = expansion(mult = 0.1)
+  ) +
+  annotate(
+    geom = "point",
+    shape = c("_", "_"),
+    x = -Inf,
+    y = c(-0.000023,-0.000085),
+    size = 6
+  ) +
+  scale_x_discrete(label = c("DEF", "DEF²")) +
+  scale_color_manual(values = c("#ffa600", "#ffa600")) +
+  labs(x = "Gini income inequality index", y = "") +
+  theme(
+    panel.background = element_blank(),
+    plot.background = element_rect(fill = NA),
+    axis.line.x.bottom = element_line(colour = "black", linewidth = 0.2),
+    axis.line.y.left = element_line(colour = "black", linewidth = 0.2),
+    legend.position = "none",
+    axis.text.x.top = element_blank(),
+    axis.ticks.x.top = element_line(linewidth = 0),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  ) -> avg_fig_gini
 
 ggsave(plot = avg_fig_gini,
        filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_gini.png",
        height = 4)
 
 ##u5mort----
-sub_avg_lag_u5mort %>% 
-  coefTable() %>% 
-  as_tibble %>% 
-  slice(-1) %>% 
+sub_avg_lag_u5mort %>%
+  coefTable() %>%
+  as_tibble %>%
+  slice(-1) %>%
   mutate(var = as.factor(c("def", "def^2"))) %>%
-  glimpse() %>% 
-  ggplot(aes(x = var, y = Estimate, colour = var))+
-  geom_hline(yintercept = 0, linewidth = 0.1, color = "red")+
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
-                linewidth = 0.3,
-                width = 0.1,
-                colour = "#5c3811")+
-  geom_point()+
-  scale_y_break(breaks = c(-0.1, -0.0002), scales = "free", expand = expansion(mult = 0.1))+
-  annotate(geom = "point", shape = c("_","_"), x = -Inf, y = c(-0.094, -0.00038), size = 6)+
-  scale_x_discrete(label = c("DEF","DEF²"))+
-  scale_color_manual(values = c("#ffa600", "#ffa600"))+
-  labs(x = "Under five mortality", y = "Weighted average coefficient and standard error")+
-  theme(panel.background = element_blank(),
-        axis.line.x.bottom = element_line(colour = "black",linewidth = 0.2),
-        axis.line.y.left = element_line(colour = "black",linewidth = 0.2),
-        legend.position = "none",
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_line(linewidth = 0),
-        plot.title = element_text(hjust = 0.5, size = 10)) -> avg_fig_u5mort
+  glimpse() %>%
+  ggplot(aes(x = var, y = Estimate, colour = var)) +
+  geom_hline(yintercept = 0,
+             linewidth = 0.1,
+             color = "red") +
+  geom_errorbar(
+    aes(ymin = Estimate - `Std. Error`, ymax = Estimate + `Std. Error`),
+    linewidth = 0.3,
+    width = 0.1,
+    colour = "#5c3811"
+  ) +
+  geom_point() +
+  scale_y_break(
+    breaks = c(-0.1,-0.0002),
+    scales = "free",
+    expand = expansion(mult = 0.1)
+  ) +
+  annotate(
+    geom = "point",
+    shape = c("_", "_"),
+    x = -Inf,
+    y = c(-0.094,-0.00038),
+    size = 6
+  ) +
+  scale_x_discrete(label = c("DEF", "DEF²")) +
+  scale_color_manual(values = c("#ffa600", "#ffa600")) +
+  labs(x = "Under five mortality", y = "") +
+  theme(
+    panel.background = element_blank(),
+    axis.line.x.bottom = element_line(colour = "black", linewidth = 0.2),
+    axis.line.y.left = element_line(colour = "black", linewidth = 0.2),
+    legend.position = "none",
+    axis.text.x.top = element_blank(),
+    axis.ticks.x.top = element_line(linewidth = 0),
+    plot.title = element_text(hjust = 0.5, size = 10)
+  ) -> avg_fig_u5mort
 
 ggsave(plot = avg_fig_u5mort,
        filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/avg_fig_u5mort.png",
        height = 4)
+
+##Supplementary Figure 3----
+ggarrange(print(avg_fig_IDHE),
+          print(avg_fig_IDHL),
+          print(avg_fig_IDHR),
+          print(avg_fig_expov),
+          print(avg_fig_gini),
+          print(avg_fig_u5mort),
+          #labels = c("a","b", "c", "d", "e", "f"),
+          ncol = 2,
+          nrow = 3
+          )-> fig3
+
+ggsave(plot = fig3,
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/supp_fig3.jpg",
+       dpi = 300,
+       width = 6,
+       height = 8)
