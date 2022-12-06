@@ -10,7 +10,7 @@ library(emmeans)
 library(ggsignif)
 
 #data####
-read_xlsx("/home/lucas/Documentos/Doutorado/tese/cap1/dbcap1_rma.xlsx")->dbcap1_rma
+read_xlsx("/home/alenc/Documents/Doutorado/tese/cap1/dbcap1_rma.xlsx")->dbcap1_rma
 
 #Analysis####
 ##frontier 1991 - classifying by grouping####
