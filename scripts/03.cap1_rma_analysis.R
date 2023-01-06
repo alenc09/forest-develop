@@ -109,22 +109,23 @@ ggplot(data = dbcap1_rma, aes(x = as.factor(def.stage_10), y = tx.desmat.perc_10
   theme(legend.position="none")
 TukeyHSD(aov(data = dbcap1_rma, tx.desmat.perc_10 ~ as.factor(def.stage_10)))
 
-# Repeate-measures ANOVA####
+# Repeate-measures ANOVA----
+##data prep----
 dbcap1_rma%>% 
-  select(code_muni, nvc.perc_91, nvc.perc_00, nvc.perc_10, def.stage_91,
-         def.stage_2000, def.stage_10, IDHM_E_1991, IDHM_E_2000, IDHM_E_2010,
-         IDHM_L_1991, IDHM_L_2000, IDHM_L_2010, IDHM_R_1991, IDHM_R_2000,
-         IDHM_R_2010, expov_1991, expov_2000, expov_2010, gini_1991, gini_2000,
-         gini_2010, u5mort_1991, u5mort_2000, U5mort_2010)%>% 
+  dplyr::select(code_muni, nvc.perc_91, nvc.perc_00, nvc.perc_10, def.stage_91,
+                def.stage_2000, def.stage_10, IDHM_E_1991, IDHM_E_2000, IDHM_E_2010,
+                IDHM_L_1991, IDHM_L_2000, IDHM_L_2010, IDHM_R_1991, IDHM_R_2000,
+                IDHM_R_2010, expov_1991, expov_2000, expov_2010, gini_1991, gini_2000,
+                gini_2010, u5mort_1991, u5mort_2000, U5mort_2010)%>% 
   dplyr::rename(nvc.perc_1991 = nvc.perc_91,
-         nvc.perc_2000 = nvc.perc_00,
-         nvc.perc_2010 = nvc.perc_10,
-         def.stage_1991 = def.stage_91,
-         def.stage_2010 = def.stage_10,
-         u5mort_2010 = U5mort_2010)%>% 
+                nvc.perc_2000 = nvc.perc_00,
+                nvc.perc_2010 = nvc.perc_10,
+                def.stage_1991 = def.stage_91,
+                def.stage_2010 = def.stage_10,
+                u5mort_2010 = U5mort_2010)%>% 
   pivot_longer(cols = -code_muni,
                names_to = c(".value", "year"),
-               names_pattern = "(.+)_(.+)") %>%
+               names_pattern = "(.+)_(.+)",) %>%
   glimpse() -> pl_nvcs
 
 plF_nvcs<- pl_nvcs
@@ -139,26 +140,60 @@ tab.idhE<- car::Anova(lmer.idhE, type = "II")
 summary(lmer.idhE)
 pw.idhE<- emmeans(lmer.idhE, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
 
+
+
+##IDHM_L####
+lmer.idhL<- lmer(data = plF_nvcs, formula = IDHM_L ~ def.stage*year + (1 | code_muni))
+tab.idhL<- car::Anova(lmer.idhL, type = "II")
+summary(lmer.idhL)
+pw.idhL<- emmeans(lmer.idhL, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##IDHM_R####
+lmer.idhR<- lmer(data = plF_nvcs, formula = IDHM_R ~ def.stage*year + (1 | code_muni))
+tab.idhR<- car::Anova(lmer.idhR, type = "II")
+summary(lmer.idhR)
+pw.idhR<- emmeans(lmer.idhR, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##expov####
+lmer.expov<- lmer(data = plF_nvcs, formula = expov ~ def.stage*year + (1 | code_muni))
+tab.expov<- car::Anova(lmer.expov, type = "II")
+summary(lmer.expov)
+pw.expov<- emmeans(lmer.expov, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##gini####
+lmer.gini<- lmer(data = plF_nvcs, formula = gini ~ def.stage*year + (1 | code_muni))
+tab.gini<- car::Anova(lmer.gini, type = "II")
+summary(lmer.gini)
+pw.gini<- emmeans(lmer.gini, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+##u5mort####
+lmer.u5mort<- lmer(data = plF_nvcs, formula = u5mort ~ def.stage*year + (1 | code_muni))
+tab.u5mort<- car::Anova(lmer.u5mort, type = "II")
+summary(lmer.u5mort)
+pw.u5mort<- emmeans(lmer.u5mort, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
+
+#Figure 2----
+##IDH-E----
 ggplot(data = plF_nvcs, aes(x = year, y = IDHM_E, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(IDHM_E)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
   labs(x = "Year", y = "HDI - Education")+
-  #scale_y_continuous(limits = c(0, 0.85))+
   geom_signif(y_position = c(0.43, 0.43, 0.43, 0.58, 0.58, 0.58, 0.77, 0.77, 0.77), 
               xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
               xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
               annotations = c("a","b","b", "c", "d", "d", "e", "e", "f"),
               tip_length = 0)+
-  theme_classic(base_size = 14) -> rma_idhE
-ggsave(filename = "HDI-E_defstage.png")
+  theme_classic(base_size = 14)+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank())-> rma_idhE
 
-##IDHM_L####
+##IDH-L----
 ggplot(data = plF_nvcs, aes(x = year, y = IDHM_L, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(IDHM_L)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
@@ -169,18 +204,14 @@ ggplot(data = plF_nvcs, aes(x = year, y = IDHM_L, fill = def.stage)) +
               xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
               annotations = c("a","a","b", "c", "c", "c", "d", "d", "d"),
               tip_length = 0)+
-  theme_classic(base_size = 14) -> rma_idhL
-ggsave(filename = "HDI-L_defstage.png")
+  theme_classic(base_size = 14)+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank()) -> rma_idhL
 
-lmer.idhL<- lmer(data = plF_nvcs, formula = IDHM_L ~ def.stage*year + (1 | code_muni))
-tab.idhL<- car::Anova(lmer.idhL, type = "II")
-summary(lmer.idhL)
-pw.idhL<- emmeans(lmer.idhL, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
-
-##IDHM_R####
+##IDH-R----
 ggplot(data = plF_nvcs, aes(x = year, y = IDHM_R, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(IDHM_R)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
@@ -191,18 +222,14 @@ ggplot(data = plF_nvcs, aes(x = year, y = IDHM_R, fill = def.stage)) +
               xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
               annotations = c("a","b","c", "d", "e", "de", "f", "f", "f"),
               tip_length = 0)+
-  theme_classic(base_size = 14) -> rma_idhR
-ggsave(filename = "HDI-R_defstage.png")
+  theme_classic(base_size = 14)+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank()) -> rma_idhR
 
-lmer.idhR<- lmer(data = plF_nvcs, formula = IDHM_R ~ def.stage*year + (1 | code_muni))
-tab.idhR<- car::Anova(lmer.idhR, type = "II")
-summary(lmer.idhR)
-pw.idhR<- emmeans(lmer.idhR, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
-
-##expov####
+##expov----
 ggplot(data = plF_nvcs, aes(x = year, y = expov, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(expov)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
@@ -213,18 +240,12 @@ ggplot(data = plF_nvcs, aes(x = year, y = expov, fill = def.stage)) +
               xmax = c(0.8, 1.05, 1.3, 1.8, 2.05, 2.3, 2.8, 3.05, 3.3),
               annotations = c("a","b","c", "d", "e", "de", "f", "g", "fg"),
               tip_length = 0)+
-  theme_classic(base_size = 14) -> rma_expov
-ggsave(filename = "expov_defstage.png")
+  theme_classic(base_size = 14)-> rma_expov
 
-lmer.expov<- lmer(data = plF_nvcs, formula = expov ~ def.stage*year + (1 | code_muni))
-tab.expov<- car::Anova(lmer.expov, type = "II")
-summary(lmer.expov)
-pw.expov<- emmeans(lmer.expov, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
-
-##gini####
+##gini----
 ggplot(data = plF_nvcs, aes(x = year, y = gini, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(gini)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
@@ -235,17 +256,11 @@ ggplot(data = plF_nvcs, aes(x = year, y = gini, fill = def.stage)) +
               annotations = c("a","a","a", "b", "c", "bc", "a", "d", "d"),
               tip_length = 0)+
   theme_classic(base_size = 14) -> rma_gini
-ggsave(filename = "gini_defstage.png")
 
-lmer.gini<- lmer(data = plF_nvcs, formula = gini ~ def.stage*year + (1 | code_muni))
-tab.gini<- car::Anova(lmer.gini, type = "II")
-summary(lmer.gini)
-pw.gini<- emmeans(lmer.gini, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
-
-##u5mort####
+##u5mort---
 ggplot(data = plF_nvcs, aes(x = year, y = u5mort, fill = def.stage)) +
   geom_boxplot(aes(middle = mean(u5mort)))+
-  scale_fill_manual(values = c("#313695", "#E6E600", "#A50026"), labels = c("Initial",
+  scale_fill_manual(values = c("#5c3811", "#ac6c13", "#ffa600"), labels = c("Initial",
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
@@ -256,20 +271,15 @@ ggplot(data = plF_nvcs, aes(x = year, y = u5mort, fill = def.stage)) +
               annotations = c("a","a","b", "c", "c", "c", "d", "d", "d"),
               tip_length = 0)+
   theme_classic(base_size = 14) -> rma_u5mort
-ggsave(filename = "u5mort_defstage.png")
 
-lmer.u5mort<- lmer(data = plF_nvcs, formula = u5mort ~ def.stage*year + (1 | code_muni))
-tab.u5mort<- car::Anova(lmer.u5mort, type = "II")
-summary(lmer.u5mort)
-pw.u5mort<- emmeans(lmer.u5mort, pairwise ~ def.stage*year, pbkrtest.limit = 3621)
-
-#Figure 2####
+##panel---
 ggarrange(rma_idhE, rma_idhL, rma_idhR, rma_expov, rma_gini, rma_u5mort,
           labels = c("a", "b", "c", "d", "e", "f"),
           common.legend = T,
-          legend = "bottom",
-          )->fig2
+          legend = "bottom")->fig2
+
 ggsave(plot = fig2,
-       filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig2.png",
+       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/fig2.jpg",
        width = 11,
-       height = 8)
+       height = 8,
+       bg="white")
