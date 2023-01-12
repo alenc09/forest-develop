@@ -1,8 +1,13 @@
+# Tue Nov  8 11:49:32 2022 ------------------------------
+#Script to build the data table for propensity score analysis
+
+#Libraries----
 library(readxl)
 library(dplyr)
 library(tidyr)
 library(writexl)
 library(maptools)
+
 
 #Data preparation####
 
