@@ -8,9 +8,11 @@ library(tidyr)
 library(lme4)
 library(emmeans)
 library(ggsignif)
+library(here)
+library(ggpubr)
 
 #data####
-read_xlsx("/home/alenc/Documents/Doutorado/tese/cap1/dbcap1_rma.xlsx")->dbcap1_rma
+read_xlsx(here("data/dbcap1_rma.xlsx"))->dbcap1_rma
 
 #Analysis####
 ##frontier 1991 - classifying by grouping####
@@ -233,7 +235,7 @@ ggplot(data = plF_nvcs, aes(x = year, y = expov, fill = def.stage)) +
                                                                             "Intermediate",
                                                                             "Advanced"),
                     name = "Deforestation stage")+
-  labs(x = "Year", y = "Extreme poverty")+
+  labs(x = "Year", y = "Extreme poverty rate (%)")+
   #scale_y_continuous(limits = c(0, 0.85))+
   geom_signif(y_position = c(96, 96, 96, 76, 76, 76, 51, 51, 51), 
               xmin = c(0.7, 0.95, 1.2, 1.7, 1.95, 2.2, 2.7, 2.95, 3.2),
@@ -279,7 +281,7 @@ ggarrange(rma_idhE, rma_idhL, rma_idhR, rma_expov, rma_gini, rma_u5mort,
           legend = "bottom")->fig2
 
 ggsave(plot = fig2,
-       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/fig2.jpg",
+       filename = "/Users/user/OneDrive - The University of Manchester/outros_trampos/Manuscritos/boom-bust_caat/Manuscript/NatSus/fig2.jpg",
        width = 11,
        height = 8,
        bg="white")

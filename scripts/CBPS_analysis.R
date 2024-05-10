@@ -325,9 +325,9 @@ ggplot(data = data[-142,], aes(x = defPerc_2010, y = expov_2010))+
   geom_point(alpha  = 0.2, color = "#5c3811")+
   stat_smooth(method = "lm", formula = y ~ x + I(x^2), lwd = 0.8, fill = "grey80", color = "#ffa600")+
   xlab("Deforestation (%)")+
-  ylab("Extreme Poverty")+
+  ylab("Extreme poverty rate (%)")+
   theme_classic()+
-  theme(legend.position = "none")#->fig.expov_10
+  theme(legend.position = "none")->fig.expov_10
 
 #gini
 ggplot(data = data[-142,], aes(x = defPerc_2010, y = gini_2010))+
@@ -351,7 +351,7 @@ ggplot(data = data[-142,], aes(x = defPerc_2010, y = u5mort_2010))+
 ggarrange(fig.IDHM_E_10, fig.IDHM_L_10, fig.IDHM_R_10, fig.expov_10, fig.gini_10, fig.u5mort_10,
           labels = c("a","b", "c", "d", "e", "f"))-> fig3
 ggsave(plot = fig3,
-       filename = "/home/lucas/Documentos/Doutorado/tese/cap1/Manuscript/fig3.png",
+       filename = "/Users/user/OneDrive - The University of Manchester/outros_trampos/Manuscritos/boom-bust_caat/Manuscript/NatSus/fig3.jpg",
        dpi = 300,
        width = 10,
        height = 6)

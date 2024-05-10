@@ -14,6 +14,14 @@ dbcap1_rma%>%
          ) %>%glimpse->dbcap1_rma
 #Analysis####
 ##Mean deforestation rates####
+dbcap1_rma %>% 
+  dplyr::select(code_muni, def.stage_10, tx.desmat.perc_91, tx.desmat.perc_00, tx.desmat.perc_10) %>%
+  mutate(mean.defRate = (tx.desmat.perc_91 + tx.desmat.perc_00 + tx.desmat.perc_10)/3) %>%
+  group_by(def.stage_10) %>%
+  summarise(mean.defRate_group = mean(mean.defRate),
+            sd.defRate_group = sd(mean.defRate)) %>%
+           glimpse
+
 dbcap1_rma%>%
 ggplot(data = ., aes(x = as.factor(def.stage_10), y = mean_defPerc,
                                 fill = as.factor(def.stage_10)))+# , group = def_stage, fill = def_stage))+
@@ -107,3 +115,4 @@ plF_nvcs%>%
 summary_devlop%>%
   mutate(meanG_idhE = )
   glimpse
+
