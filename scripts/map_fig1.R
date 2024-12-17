@@ -104,7 +104,8 @@ ggdraw()+
             x = -0.03, y = 0.7, width = 0.30, height = 0.30)-> fig1_inset
 
 ggsave(plot = fig1_inset,
-       filename = "/home/alenc/Documents/Doutorado/tese/cap1/Manuscript/figures/fig1_inset.jpg",
+       filename = "/Users/user/Library/CloudStorage/OneDrive-TheUniversityofManchester/outros_trampos/Manuscritos/boom-bust_caat/Manuscript/FPE/figures/figure_1.jpg",
+       dpi = 300,
        height = 6,
        width = 8,
        bg = "white")
