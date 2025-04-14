@@ -14,7 +14,8 @@ library(spatialreg)
 library(ggplot2)
 library(here)
 library(geobr)
-
+library(sandwich)
+library(lmtest)
 
 read_xlsx(here("data/db2cap1_cbps_clean.xlsx"))-> data
 
@@ -34,13 +35,14 @@ data %>% #removing empty neighbours for spatial analysis
   filter(code_muni != "2203206",
          code_muni != "2515005",
          code_muni != "2804607") %>%
-  glimpse()->data
+  glimpse()-> data
 
+data[-142,] -> data
 #data analysis----
 ##Propensity scores for 2010 model
 ### Create CBPS----
 
-CBPS(data = data[-142,], #remove variables with correlation higher than 0.4 in 
+CBPS(data = data, #remove variables with correlation higher than 0.4 in 
               defPerc_2010 ~  #both directions and one municipality without neighbours    
               area_mun +
               p_agro_10 +
@@ -73,13 +75,17 @@ boxplot(bal.covar)
 ###Average Treatment Effect----
 ####Fong et al, 2018 method
 ####outcome expov----
-glm(data = data[-142,], 
+glm(data = data, 
                     expov_2010 ~
                       defPerc_2010 +
                       I(defPerc_2010^2),
                     weights = modeldef$weights
                     ) -> model.expov10
 summary(model.expov10)
+
+#####clustered standard errors----
+clval <- sandwich::vcovCL(model.expov10, data$code_muni)
+coeftest(x = model.expov10, vcov. = clval, cluster = "code_muni")
 
 #####Spatial autocorrelation----
 read_municipality(simplified = F)->mun_cat
@@ -112,8 +118,8 @@ summary(impacts(m.expov_spat,
         zstats = TRUE)->summ.sac_expov
 
 
-####outcome IDHM_R####
-model.idhmR_2010<- glm(data = data[-142,], 
+####outcome IDHM_R----
+model.idhmR_2010<- glm(data = data, 
                     IDHM_R_2010 ~
                       defPerc_2010 +
                       I(defPerc_2010^2),
@@ -121,6 +127,11 @@ model.idhmR_2010<- glm(data = data[-142,],
 )
 summary(model.idhmR_2010)
 
+#####clustered standard errors----
+clval <- sandwich::vcovCL(model.idhmR_2010, data$code_muni)
+coeftest(x = model.idhmR_2010, vcov. = clval, cluster = "code_muni")
+
+#####spatial autocorrelation----
 lm.morantest(model.idhmR_2010,mat_dist_list, alternative = "two.sided")
 
 sacsarlm(
@@ -153,7 +164,7 @@ summary(impacts(m.idhmR_spat,
 
 
 ####outcome IDHM_L####
-model.idhmL_2010<- glm(data = data[-142,], 
+model.idhmL_2010<- glm(data = data, 
                         IDHM_L_2010 ~
                           defPerc_2010 +
                           I(defPerc_2010^2),
@@ -161,6 +172,11 @@ model.idhmL_2010<- glm(data = data[-142,],
 )
 summary(model.idhmL_2010)
 
+#####clustered standard errors----
+clval <- sandwich::vcovCL(model.idhmL_2010, data$code_muni)
+coeftest(x = model.idhmL_2010, vcov. = clval, cluster = "code_muni")
+
+#####spatial autocorrelation----
 lm.morantest(model.idhmL_2010,mat_dist_list, alternative = "two.sided")
 
 sacsarlm(
@@ -194,7 +210,7 @@ summary(impacts(m.idhmL_spat,
 
 
 ####outcome IDHM_E####
-model.idhmE_2010<- glm(data = data[-142,], 
+model.idhmE_2010<- glm(data = data, 
                        IDHM_E_2010 ~
                          defPerc_2010 +
                          I(defPerc_2010^2),
@@ -202,6 +218,11 @@ model.idhmE_2010<- glm(data = data[-142,],
 )
 summary(model.idhmE_2010)
 
+#####clustered standard errors----
+clval <- sandwich::vcovCL(model.idhmE_2010, data$code_muni)
+coeftest(x = model.idhmE_2010, vcov. = clval, cluster = "code_muni")
+
+#####Spatial autocorrelation----
 lm.morantest(model.idhmE_2010,mat_dist_list, alternative = "two.sided")
 
 sacsarlm(
@@ -228,7 +249,7 @@ summary(impacts(m.idhmE_spat,
 
 
 ####outcome gini####
-model.gini_2010<- glm(data = data[-142,], 
+model.gini_2010<- glm(data = data, 
                       gini_2010 ~
                         defPerc_2010 +
                         I(defPerc_2010^2),
@@ -236,6 +257,11 @@ model.gini_2010<- glm(data = data[-142,],
 )
 summary(model.gini_2010)
 
+#####clustered standard errors----
+clval <- sandwich::vcovCL(model.gini_2010, data$code_muni)
+coeftest(x = model.gini_2010, vcov. = clval, cluster = "code_muni")
+
+#####Spatial autocorrelation----
 lm.morantest(model.gini_2010,mat_dist_list, alternative = "two.sided")
 
 sacsarlm(
@@ -261,7 +287,7 @@ summary(impacts(m.gini_spat,
 
 
 ####outcome u5mort####
-model.u5mort_2010<- glm(data = data[-142,], 
+model.u5mort_2010<- glm(data = data, 
                       u5mort_2010 ~
                         defPerc_2010 +
                         I(defPerc_2010^2),
@@ -269,6 +295,11 @@ model.u5mort_2010<- glm(data = data[-142,],
 )
 summary(model.u5mort_2010)
 
+#####clustered standard errors----
+clval <- sandwich::vcovCL(model.u5mort_2010, data$code_muni)
+coeftest(x = model.u5mort_2010, vcov. = clval, cluster = "code_muni")
+
+#####spatial autocorrelation----
 lm.morantest(model.u5mort_2010,mat_dist_list, alternative = "two.sided")
 
 sacsarlm(
