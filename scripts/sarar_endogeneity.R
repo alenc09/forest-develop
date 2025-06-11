@@ -4,6 +4,10 @@
 #library----
 library(readxl)
 library(dplyr)
+library(here)
+library(geobr)
+library(spdep)
+library(spatialreg)
 
 #data----
 read_xlsx(here("data/db2cap1_cbps_clean.xlsx"))-> data
@@ -45,6 +49,8 @@ sacsarlm(
   type = "sac"
 ) -> m.idhmE_spat
 
+summary(m.idhmE_spat)
+
 ###endogeneity test (Dyngeland et al., 2020)----
 cor.test(x = m.idhmE_spat$residuals, y = data[-142,]$defPerc_2010, method = "spearman")
 
@@ -71,6 +77,8 @@ sacsarlm(
   listw = mat_dist_list,
   type = "sac"
 ) -> m.idhmL_spat
+
+summary(m.idhmL_spat)
 ###endogeneity test (Dyngeland et al., 2020)----
 cor.test(x = m.idhmL_spat$residuals, y = data[-142,]$defPerc_2010, method = "spearman")
 
@@ -97,6 +105,9 @@ sacsarlm(
   listw = mat_dist_list,
   type = "sac"
 ) -> m.idhmR_spat
+
+summary(m.idhmR_spat)
+
 ###endogeneity test (Dyngeland et al., 2020)----
 cor.test(x = m.idhmR_spat$residuals, y = data[-142,]$defPerc_2010, method = "spearman")
 
@@ -116,6 +127,8 @@ sacsarlm(
   listw = mat_dist_list,
   type = "sac"
 ) -> m.expov_spat
+
+summary(m.expov_spat)
 ###endogeneity test (Dyngeland et al., 2020)----
 cor.test(x = m.expov_spat$residuals, y = data[-142,]$defPerc_2010, method = "spearman")
 
@@ -135,6 +148,8 @@ sacsarlm(
   listw = mat_dist_list,
   type = "sac"
 ) -> m.gini_spat
+
+summary(m.gini_spat)
 ###endogeneity test (Dyngeland et al., 2020)----
 cor.test(x = m.gini_spat$residuals, y = data[-142,]$defPerc_2010, method = "spearman")
 
@@ -154,5 +169,7 @@ sacsarlm(
   listw = mat_dist_list,
   type = "sac"
 ) -> m.u5mort_spat
+
+summary(m.u5mort_spat)
 ###endogeneity test (Dyngeland et al., 2020)----
 cor.test(x = m.u5mort_spat$residuals, y = data[-142,]$defPerc_2010, method = "spearman")
